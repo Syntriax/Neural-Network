@@ -33,7 +33,14 @@ float RandomFloat(int min, int max)
             float Fire();
     };
 
-    Sinaps::Sinaps() { weight = value = bias = 0.0; }
+    Sinaps::Sinaps() 
+    { 
+        weight = value = bias = 0.0; 
+        std::clog << "Create Sinaps: Weight = " << weight
+                  << " Value = " << value
+                  << " Bias = " << bias << "\n";
+    }
+    
     Sinaps::~Sinaps() 
     {
         std::clog << "Delete Sinaps: Weight = " << weight
@@ -104,37 +111,41 @@ float RandomFloat(int min, int max)
     
     bool Noron::SetForwards(Sinaps *newForwards, int size)
     {
-        forwards = new Sinaps[size];
+        std::clog << "SetForwards: Allocating Memory of Size " << size << "\n";
+        forwards = (Sinaps *)new char[sizeof(Sinaps) * size];
         
         if(!forwards) 
         {
-            std::clog << "Set Forwards: Memory Couldn't Allocated!" << "\n";
+            std::clog << "SetForwards: Memory Couldn't Allocated!" << "\n";
             return false;
         }
+        std::clog << "SetForwards: Memory Allocated!" << "\n";
 
         for (int i = 0; i < size; i++)
             *(forwards+i) = *(newForwards+i);
         
         forwardsCount = size;
-        std::clog << "Set Forwards: Successfull!" << "\n";
+        std::clog << "SetForwards: Successfull!" << "\n";
         return true;
     }
 
     bool Noron::SetIncoming(Sinaps *newIncoming, int size)
     {
-        incoming = new Sinaps[size];
+        std::clog << "SetIncoming: Allocating Memory of Size " << size << "\n";
+        incoming = (Sinaps *)new char[sizeof(Sinaps) * size];
         
         if(!incoming) 
         {
-            std::clog << "Set Incoming: Memory Couldn't Allocated!" << "\n";
+            std::clog << "SetIncoming: Memory Couldn't Allocated!" << "\n";
             return false;
         }
+        std::clog << "SetIncoming: Memory Allocated!" << "\n";
 
         for (int i = 0; i < size; i++)
             *(incoming+i) = *(newIncoming+i);
         
         incomingCount = size;
-        std::clog << "Set Incoming: Successfull!" << "\n";
+        std::clog << "SetIncoming: Successfull!" << "\n";
         return true;
     }
 
@@ -253,7 +264,7 @@ float RandomFloat(int min, int max)
 
         forwardSize = forward -> GetSize();
         std::clog << "Call SetForward: Creating Sinaps Set with Number of " << (size * forwardSize) << "\n";
-        sinapses = new Sinaps[size * forwardSize];
+        sinapses = (Sinaps *)new char[sizeof(Sinaps) * size * forwardSize];
 
         if(!sinapses)
         {
@@ -295,7 +306,7 @@ float RandomFloat(int min, int max)
         Sinaps *sinapses = NULL;
 
         std::clog << "Call SetIncoming: Creating Sinaps Set with Number of " << backwardsNeuronCount << "\n";
-        sinapses = new Sinaps[backwardsNeuronCount];
+        sinapses = (Sinaps *)new char[sizeof(Sinaps) * backwardsNeuronCount];
         
         if(!sinapses)
         {
@@ -322,7 +333,7 @@ float RandomFloat(int min, int max)
     bool Katman::SetNoron(Noron *newNeurons, int size)
     {
         std::clog << "Call SetNoron: Creating Neurons with Number of " << size << "\n";
-        neurons = new Noron[size];
+        neurons = (Noron *) new char[sizeof(Noron) * size];
         
         if(!neurons)
         {
@@ -481,7 +492,7 @@ float RandomFloat(int min, int max)
     {
         std::clog << "Call SetHiddenLayerNeurons: Size of " << size << " at Index of " << index << "\n";
         std::clog << "Call SetHiddenLayerNeurons: Creating " << size << " Neurons!" << "\n";
-        Noron *neurons = new Noron[size];
+        Noron *neurons = (Noron *) new char[sizeof(Noron) * size];
         
         if(!neurons)
         {
@@ -497,7 +508,7 @@ float RandomFloat(int min, int max)
     {
         std::clog << "Call SetInputNeurons: Size of " << size << "\n";
         std::clog << "Call SetInputNeurons: Creating " << size << " Neurons!" << "\n";
-        Noron *neurons = new Noron[size];
+        Noron *neurons = (Noron *) new char[sizeof(Noron) * size];
 
         if(!neurons)
         {
@@ -513,7 +524,7 @@ float RandomFloat(int min, int max)
     {
         std::clog << "Call SetInputNeurons: Size of " << size << "\n";
         std::clog << "Call SetInputNeurons: Creating " << size << " Neurons!" << "\n";
-        Noron *neurons = new Noron[size];
+        Noron *neurons = (Noron *) new char[sizeof(Noron) * size];
 
         if(!neurons)
         {
@@ -612,14 +623,14 @@ int main(int argc, char const *argv[])
     network.SetOutputNeurons(1);
 
     network.ConnectLayers();
-    network.RandomizeNetworkValues();
-
-    network.SetInput(0, 1);
     std::cout << "m1\n";
-
-    network.FireNetwork();
+    network.RandomizeNetworkValues();
     std::cout << "m2\n";
-    std::cout << network.GetOutputValue(0) << "\n";
+
+    // network.SetInput(0, 1);
     std::cout << "m3\n";
+
+    // network.FireNetwork();
+    // std::cout << network.GetOutputValue(0) << "\n";
     return 0;
 }
