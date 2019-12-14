@@ -12,7 +12,7 @@ float RandomFloat(int min, int max)
     value = (rand() % ((max - min) * 100));
     result = (float)value / 100.0 + (float)min;
     std::clog << "Function RandomFloat: Between " << min << " and " << max << " returned value is " << result << "\n";
-    return result;
+    return 1.0;
 }
 
 #pragma region Sinaps 
@@ -69,14 +69,14 @@ float RandomFloat(int min, int max)
                   << " Value = " << value
                   << " Bias = " << bias << "\n";
      }
-    void Sinaps::SetWeight(float weight) { std::clog << "\n" << "Set Sinaps Weight: " << weight << "\n"; this -> weight = weight; }
-    void Sinaps::SetValue(float value) { std::clog << "\n" << "Set Sinaps Value: " << value << "\n"; this -> value = value; }
-    void Sinaps::SetBias(float bias) { std::clog << "\n" << "Set Sinaps Bias: " << bias << "\n"; this -> bias = bias; }
+    void Sinaps::SetWeight(float weight) { std::clog << "Set Sinaps Weight: " << weight << "\n"; this -> weight = weight; }
+    void Sinaps::SetValue(float value) { std::clog << "Set Sinaps Value: " << value << "\n"; this -> value = value; }
+    void Sinaps::SetBias(float bias) { std::clog << "Set Sinaps Bias: " << bias << "\n"; this -> bias = bias; }
 
     float Sinaps::Fire() 
     { 
         float result = weight * value + bias;
-        std::clog << "\n" << "Return Sinaps Fire: " << weight << " * " << 
+        std::clog << "Return Sinaps Fire: " << weight << " * " << 
                                             value << " + " <<
                                             bias << " = " << 
                                             result << "\n"; 
@@ -167,15 +167,23 @@ float RandomFloat(int min, int max)
 
     float Noron::GetStatus()
     {
-        float toplam = 0.0;
+        std::clog << "\n" << "GetStatus: Called!" << "\n";
+        float toplam = 0.0; 
         
+        std::clog << "GetStatus: Firing All Sinapses!" << "\n" << "\n";
         for (int i = 0; i < incomingCount; i++)
+        {
+            std::clog << "GetStatus: Firing Sinaps " << i << "\n";
             toplam += (incoming + i) -> Fire();
+        }
 
         for (int i = 0; i < forwardsCount; i++)
+        {
+            std::clog << "GetStatus: Setting Value of Sinaps " << i << " to " << toplam << "\n";
             (forwards + i) -> SetValue(toplam);
+        }
 
-        std::clog << "\n" << "Get Noron Status: Sum = " << toplam << "\n";
+        std::clog << "Get Noron Status: Sum = " << toplam << "\n";
         return toplam;
     }
 #pragma endregion
@@ -203,12 +211,18 @@ float RandomFloat(int min, int max)
     
     Katman::Katman() 
     {
-        neurons = NULL; this -> size = 0; 
+        neurons = NULL; 
+        forward = NULL;
+        layerSinapses = NULL;
+        this -> size = 0; 
         std::clog << "Create Layer: NULL" << "\n";
     }
     Katman::Katman(int size) 
     { 
-        Katman();
+        neurons = NULL; 
+        forward = NULL;
+        layerSinapses = NULL;
+        this -> size = 0; 
         
         if(!CreateNoron(size))
         {
@@ -252,7 +266,7 @@ float RandomFloat(int min, int max)
             bias = RandomFloat(-1, 1);
 
             (layerSinapses + i) -> SetSinaps(weight, value, bias);
-            std::clog << "RandomizeSinapsValues: SetSinaps d With Values of SetSinaps(" << weight << ", " << value << ", " << bias << ")" << "\n";
+            std::clog << "RandomizeSinapsValues: SetSinaps Called With Values of SetSinaps(" << weight << ", " << value << ", " << bias << ")" << "\n";
         }
     }
 
@@ -333,6 +347,7 @@ float RandomFloat(int min, int max)
     bool Katman::SetIncoming(Sinaps *sinapsSet, int backwardsNeuronCount)
     {
         Sinaps *sinapses = NULL;
+        int sinapcCounter = 0;
 
         std::clog << "\n" << "SetIncoming: Creating Sinaps Set with Number of " << backwardsNeuronCount << "\n";
         if(sinapses)
@@ -355,7 +370,7 @@ float RandomFloat(int min, int max)
             std::clog << "SetIncoming: Sinapses Are Being Added to the Array!" << "\n";
             // Add each sinaps to the array
             for (int incomingCounter = 0; incomingCounter < backwardsNeuronCount; incomingCounter++)
-                *(sinapses + incomingCounter) = *(sinapsSet + (size * thisCounter + incomingCounter));
+                *(sinapses + incomingCounter) = *(sinapsSet + sinapcCounter++);
 
             std::clog << "SetIncoming -> Neuron SetIncoming: " << 
                 (neurons + thisCounter) -> SetIncoming(sinapses, backwardsNeuronCount)
@@ -602,7 +617,7 @@ float RandomFloat(int min, int max)
     {
         if(!input -> SetForward(hiddenLayers))
         {
-            std::clog << "\n" << "ConnectLayers: Input Couldn't Set to Forward!" << "\n";
+            std::clog << "\n" << "Error ConnectLayers: Input Couldn't Set to Forward!" << "\n";
             return false;
         }
         std::clog << "\n" << "ConnectLayers: Input is Set to Forward Successfully!" << "\n";
@@ -610,14 +625,17 @@ float RandomFloat(int min, int max)
         for (int i = 0; i < hiddenSize - 1; i++)
             if(!(hiddenLayers + i) -> SetForward(hiddenLayers + i + 1))
             {
-                std::clog << "ConnectLayers: Hidden Layer " << i << " Couldn't Set to Forward!" << "\n";
+                std::clog << "Error ConnectLayers: Hidden Layer " << i << " Couldn't Set to Forward!" << "\n";
                 return false;
             }
+            else
+                std::clog << "ConnectLayers: Hidden Layer " << i << " is Set to Forward Successfully!" << "\n";
+
         std::clog << "ConnectLayers: Hidden Layers are Set to Forward Successfully!" << "\n";
         
         if(!(hiddenLayers + hiddenSize - 1) -> SetForward(output))
         {
-            std::clog << "ConnectLayers: Output Couldn't Set to Forward!" << "\n";
+            std::clog << "Error ConnectLayers: Output Couldn't Set to Forward!" << "\n";
             return false;
         }
         std::clog << "ConnectLayers: Output is Set to Forward Successfully!" << "\n";
