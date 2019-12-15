@@ -1,23 +1,14 @@
 #include <iostream>
 #include <time.h>
 
+#define InitialSynapseValue 1.0
+
 class Synapse;
 class Neuron;
 class Layer;
 class Input;
 class Output;
 class NeuralNetwork;
-
-float RandomFloat(int min, int max)
-{
-    float result;
-    int value;
-    static unsigned long int counter = 0;
-    srand(time(0) + counter++ * 50);
-    value = (rand() % ((max - min) * 100));
-    result = (float)value / 100.0 + (float)min;
-    return result;
-}
 
 #pragma region Synapse
     class Synapse
@@ -36,7 +27,7 @@ float RandomFloat(int min, int max)
     
     Synapse::Synapse()
     {
-        this -> value = this -> weight = this -> bias = 1.0;
+        this -> value = this -> weight = this -> bias = InitialSynapseValue;
     }
 
     void Synapse::SetValue(float value)
@@ -72,7 +63,6 @@ float RandomFloat(int min, int max)
             int incomingsSize;
             int forwardsSize;
             int layerSize;
-            float value;
         public:
             Neuron();
             void ConnectIncomings(Synapse *, int);
@@ -85,12 +75,12 @@ float RandomFloat(int min, int max)
     {
         incomings = forwards = NULL;
         incomingsSize = forwardsSize = layerSize = 0;
-        value = 0.0;
     }
     
     void Neuron::SetValue(float value)
     {
-        this -> value = value;
+        for (int i = 0; i < forwardsSize; i++)
+            (forwards + i) -> SetValue(value);
     }
     
     void Neuron::ConnectIncomings(Synapse *incomings, int incomingsSize)
@@ -110,21 +100,17 @@ float RandomFloat(int min, int max)
     {
         float result = 0.0;
 
-        if(!incomings) return (value = result);
+        if(!incomings) return result;
 
         for (int i = 0; i < incomingsSize; i++)
             result += (incomings + i) -> Fire();
 
 
-        if(!forwards) return (value = result);
+        if(!forwards) return result;
 
         for (int i = 0; i < forwardsSize; i++)
-            // currentSynapse = (forwards -> synapses + (forwardNeuron * this -> neuronSize)); 
-            // (forwards + i) -> SetValue(result);
-            //BAK BURAYA
             (forwards + i * layerSize) -> SetValue(result);
 
-        value = result;
         return result;
     }
 #pragma endregion
@@ -200,13 +186,10 @@ float RandomFloat(int min, int max)
         int currentIndex = 0;
         Synapse *currentSynapse = NULL;
         Neuron *currentNeuron = NULL;
-        // Synapse *connectSynapses = NULL;
 
         if(synapses) delete synapses;
         synapses = (Synapse *) new char[sizeof(Synapse) * synapseCount];
         if(!synapses) return false;
-
-        // connectSynapses = (Synapse *) new char[sizeof(Synapse) * previousSize];
 
         for (int thisNeuron = 0; thisNeuron < this -> neuronSize; thisNeuron++)
         {
@@ -217,17 +200,13 @@ float RandomFloat(int min, int max)
                 currentNeuron = (previous -> neurons) + prevNeuron;
                 
                 *currentSynapse = Synapse();
-                // currentSynapse = (Synapse *) new char[sizeof(Synapse)];
-                // currentSynapse -> SetWeight(1);
-                // currentSynapse -> SetValue(2);
-                // currentSynapse -> SetBias(3);
-                // currentSynapse -> SetRoot(currentNeuron);
             }
 
             currentNeuron = (neurons + thisNeuron);
             currentNeuron -> ConnectIncomings((synapses + thisNeuron * previousSize), previousSize);
         }
-
+        
+        synapseSize = synapseCount;
         return previous -> ConnectForwards(this);
     }
 
@@ -241,7 +220,6 @@ float RandomFloat(int min, int max)
             currentNeuron = (neurons + thisNeuron);
             for (int forwardNeuron = 0; forwardNeuron < forwardsSize; forwardNeuron++)
                 currentNeuron -> ConnectForwards(forwards -> synapses + thisNeuron, forwardsSize, this -> neuronSize);
-                // currentSynapse = (forwards -> synapses + (thisNeuron + forwardNeuron * this -> neuronSize)); 
         }
         return true;
     }
@@ -295,7 +273,6 @@ float RandomFloat(int min, int max)
             Layer *hidden;
             Output *output;
             int hiddenSize;
-            
         public:
             NeuralNetwork();
             NeuralNetwork(int);
@@ -386,15 +363,29 @@ int main(int argc, char const *argv[])
 {
     NeuralNetwork network(3);
 
-    network.SetInputNeurons(1);
-    network.SetHiddenNeurons(0, 2);
-    network.SetHiddenNeurons(1, 3);
-    network.SetHiddenNeurons(2, 2);
-    network.SetOutputNeurons(1);
+    #pragma region Initialization
+        network.SetInputNeurons(1);
+        network.SetHiddenNeurons(0, 2);
+        network.SetHiddenNeurons(1, 3);
+        network.SetHiddenNeurons(2, 2);
+        network.SetOutputNeurons(1);
 
-    network.ConnectLayers();
-    network.SetInput(0, 2);
-    network.FireNetwork();
-    std::cout << "Result = " << network.GetOutput(0) << "\n";
+        network.ConnectLayers();
+    #pragma endregion
+
+    #pragma region Fixed Bias&Weight
+        network.SetInput(0, 1);
+        network.FireNetwork();
+        std::cout << "Result = " << network.GetOutput(0) << "\n";
+
+        network.SetInput(0, 2);
+        network.FireNetwork();
+        std::cout << "Result = " << network.GetOutput(0) << "\n";
+
+        network.SetInput(0, 3);
+        network.FireNetwork();
+        std::cout << "Result = " << network.GetOutput(0) << "\n";
+    #pragma endregion
+    
     return 0;
 }

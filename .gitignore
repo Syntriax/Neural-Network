@@ -1,2 +1,4 @@
 *.exe
 *.txt
+*.cpp
+!main.cpp
