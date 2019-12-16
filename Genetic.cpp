@@ -2,7 +2,7 @@
 #include <time.h>
 
 #define RandomRange 1
-#define InitialSynapseValue 1.0
+#define InitialSynapseValue 0.0
 #define MutationRate 0.0001
 
 class Synapse;
@@ -20,6 +20,7 @@ float RandomFloat(int min, int max)
     srand(time(0) * counter++);
     value = ((rand() * counter) % ((max - min) * 100000));
     result = (float)value / 100000.0 + (float)min;
+    // std::cout << "random is " << result << "\n";
     return result;
 }
 
@@ -37,7 +38,7 @@ float RandomFloat(int min, int max)
             void SetBias(float);
             float Fire();
     };
-    
+
     Synapse::Synapse()
     {
         this -> value = this -> weight = this -> bias = InitialSynapseValue;
@@ -63,7 +64,7 @@ float RandomFloat(int min, int max)
         float result = 0.0;
 
         result = this -> value * this -> weight + this -> bias;
-        
+
         return result;
     }
 #pragma endregion
@@ -83,25 +84,25 @@ float RandomFloat(int min, int max)
             void SetValue(float);
             float GetValue();
     };
-    
+
     Neuron::Neuron()
     {
         incomings = forwards = NULL;
         incomingsSize = forwardsSize = layerSize = 0;
     }
-    
+
     void Neuron::SetValue(float value)
     {
         for (int i = 0; i < forwardsSize; i++)
             (forwards + i) -> SetValue(value);
     }
-    
+
     void Neuron::ConnectIncomings(Synapse *incomings, int incomingsSize)
     {
         this -> incomings = incomings;
         this -> incomingsSize = incomingsSize;
     }
-    
+
     void Neuron::ConnectForwards(Synapse *forwards, int forwardsSize, int layerSize)
     {
         this -> forwards = forwards;
@@ -148,21 +149,21 @@ float RandomFloat(int min, int max)
             bool ConnectForwards(Layer *);
             int GetSize();
     };
-    
+
     Layer::Layer()
     {
         neuronSize = synapseSize = 0;
         neurons = NULL;
         synapses = NULL;
     }
-    
+
     Layer::Layer(int size)
     {
         neuronSize = synapseSize = 0;
         synapses = NULL;
         neurons = _CreateNeurons(size);
     }
-    
+
     Layer::~Layer()
     {
         if(neurons)  delete neurons;
@@ -173,7 +174,7 @@ float RandomFloat(int min, int max)
     {
         Neuron *newNeurons = NULL;
         newNeurons = (Neuron *) new char[sizeof(Neuron) * size];
-        
+
         if(newNeurons)
             for (int i = 0; i < size; i++)
                 *(newNeurons + i) = Neuron();
@@ -194,7 +195,7 @@ float RandomFloat(int min, int max)
         for (int i = 0; i < synapseSize; i++)
         {
             bias = RandomFloat(-RandomRange, RandomRange);
-            weight = RandomFloat(-RandomRange, RandomRange); 
+            weight = RandomFloat(-RandomRange, RandomRange);
             (synapses + i) -> SetBias(bias);
             (synapses + i) -> SetWeight(weight);
         }
@@ -246,14 +247,14 @@ float RandomFloat(int min, int max)
                 currentIndex = thisNeuron * previousSize + prevNeuron;
                 currentSynapse = (synapses + currentIndex);
                 currentNeuron = (previous -> neurons) + prevNeuron;
-                
+
                 *currentSynapse = Synapse();
             }
 
             currentNeuron = (neurons + thisNeuron);
             currentNeuron -> ConnectIncomings((synapses + thisNeuron * previousSize), previousSize);
         }
-        
+
         synapseSize = synapseCount;
         return previous -> ConnectForwards(this);
     }
@@ -262,7 +263,7 @@ float RandomFloat(int min, int max)
     {
         int forwardsSize = forwards -> neuronSize;
         Neuron *currentNeuron = NULL;
-        
+
         for (int thisNeuron = 0; thisNeuron < this -> neuronSize; thisNeuron++)
         {
             currentNeuron = (neurons + thisNeuron);
@@ -281,11 +282,11 @@ float RandomFloat(int min, int max)
         {
             public:
                 Input();
-                void SetValue(int, float);
+                void SetValue(float, int);
         };
-        
+
         Input::Input() : Layer() {}
-        void Input::SetValue(int index, float value)
+        void Input::SetValue(float value, int index = 0)
         {
             if(index >= this -> neuronSize || index < 0)
                 return;
@@ -299,9 +300,9 @@ float RandomFloat(int min, int max)
                 Output();
                 float GetValue(int);
         };
-        
+
         Output::Output() : Layer() {}
-        float Output::GetValue(int index)
+        float Output::GetValue(int index = 0)
         {
             float result = 0.0;
 
@@ -333,9 +334,10 @@ float RandomFloat(int min, int max)
             bool SetOutputNeurons(int);
             bool ConnectLayers();
             float GetOutput(int);
-            void SetInput(int, float);
+            float GetScore(float, int);
+            void SetInput(float, int);
     };
-    
+
     NeuralNetwork::NeuralNetwork()
     {
         hiddenSize = 0;
@@ -343,7 +345,7 @@ float RandomFloat(int min, int max)
         hidden = NULL;
         output = NULL;
     }
-    
+
     NeuralNetwork::NeuralNetwork(int hiddenSize)
     {
         this -> hiddenSize = hiddenSize;
@@ -351,7 +353,7 @@ float RandomFloat(int min, int max)
         hidden = new Layer(hiddenSize);
         output = new Output();
     }
-    
+
     NeuralNetwork::~NeuralNetwork()
     {
         if(input)  delete input;
@@ -374,7 +376,6 @@ float RandomFloat(int min, int max)
             (hidden + i) -> Mutate();
 
         output -> Mutate();
-        
     }
 
     void NeuralNetwork::RandomizeValues()
@@ -406,73 +407,199 @@ float RandomFloat(int min, int max)
     {
         if(!hidden -> ConnectPrevious(input))
             return false;
-        
+
         for (int i = 1; i < hiddenSize; i++)
             if(!(hidden + i) -> ConnectPrevious((hidden + i - 1)))
                 return false;
 
-        if(output -> ConnectPrevious((hidden + hiddenSize - 1)))
+        if(!output -> ConnectPrevious((hidden + hiddenSize - 1)))
             return false;
-        
+
         return true;
     }
-    
-    float NeuralNetwork::GetOutput(int index)
+
+    float NeuralNetwork::GetOutput(int index = 0)
     {
         return output -> GetValue(index);
     }
-    
-    void NeuralNetwork::SetInput(int index, float value)
+
+    float NeuralNetwork::GetScore(float target, int index = 0)
     {
-        input -> SetValue(index, value);
+        float result = GetOutput(index) - target;
+        return result < 0.0 ? -result : result;
+    }
+
+    void NeuralNetwork::SetInput(float value, int index = 0)
+    {
+        input -> SetValue(value, index);
     }
 #pragma endregion
+#pragma region Generation
+    class Generation
+    {
+        private:
+            NeuralNetwork *networks;
+            int size;
+            int step;
+            float target;
+            void SwapNetworks(NeuralNetwork *, NeuralNetwork *);
+            NeuralNetwork *_CreateNetworks(int, int);
+        public:
+            Generation();
+            Generation(int, int);
+            ~Generation();
+            void Randomize();
+            void Fire();
+            void SortByScore(int);
+            void DisplayScores(int);
+            void SetTarget(float);
+            void SetInput(float, int);
+            bool CreateNetworks(int, int);
+            bool ConnectNetworks();
+            bool SetInputNeurons(int);
+            bool SetHiddenNeurons(int, int);
+            bool SetOutputNeurons(int);
+    };
 
+    Generation::Generation()
+    {
+        step = 0;
+        networks = NULL;
+        size = 0;
+        target = 0.0;
+    }
+
+    Generation::Generation(int size, int hiddenSizes)
+    {
+        step = 0;
+        target = 0.0;
+        this -> size = size;
+        networks = _CreateNetworks(size, hiddenSizes);
+    }
+
+    Generation::~Generation()
+    {
+        if(networks) delete networks;
+    }
+
+    NeuralNetwork *Generation::_CreateNetworks(int size, int hiddenSizes)
+    {
+        NeuralNetwork *newNetworks = NULL;
+        newNetworks = (NeuralNetwork *) new char[sizeof(NeuralNetwork) * size];
+
+        if(newNetworks)
+            for (int i = 0; i < size; i++)
+                *(newNetworks + i) = NeuralNetwork(hiddenSizes);
+
+        return newNetworks;
+    }
+
+    void Generation::Randomize()
+    {
+        for (int i = 0; i < this -> size; i++)
+            (networks + i) -> RandomizeValues();
+    }
+
+    void Generation::Fire()
+    {
+        for (int i = 0; i < this -> size; i++)
+            (networks + i) -> FireNetwork();
+    }
+
+    void Generation::SwapNetworks(NeuralNetwork *first, NeuralNetwork *second)
+    {
+        NeuralNetwork temp;
+        temp = *first;
+        *first = *second;
+        *second = temp;
+    }
+
+    void Generation::DisplayScores(int index = 0)
+    {
+        std::cout << "----Scores----\n";
+        for (int i = 0; i < this -> size; i++)
+            std::cout << i << " -> " << (networks + i) -> GetScore(target, index) << "\n";
+    }
+
+    void Generation::SortByScore(int index = 0)
+    {
+        for (int i = 0; i < size - 1; i++)
+            for (int j = i + 1; j < size; j++)
+                if((networks + i) -> GetScore(target, index) < (networks + j) -> GetScore(target, index))
+                    SwapNetworks((networks + i), (networks + j));
+    }
+
+    void Generation::SetTarget(float target)
+    {
+        this -> target = target;
+    }
+
+    void Generation::SetInput(float value, int index = 0)
+    {
+        for (int i = 0; i < this -> size; i++)
+            (networks + i) -> SetInput(value, index);
+    }
+
+    bool Generation::CreateNetworks(int size, int hiddenSizes)
+    {
+        if((networks = _CreateNetworks(size, hiddenSizes)))
+            this -> size = size;
+        return networks;
+    }
+
+    bool Generation::ConnectNetworks()
+    {
+        for (int i = 0; i < this -> size; i++)
+            if(!(networks + i) -> ConnectLayers())
+                return false;
+
+        return true;
+    }
+
+    bool Generation::SetInputNeurons(int size)
+    {
+        for (int i = 0; i < this -> size; i++)
+            if(!(networks + i) -> SetInputNeurons(size))
+                return false;
+        return true;
+    }
+
+    bool Generation::SetHiddenNeurons(int index, int size)
+    {
+        for (int i = 0; i < this -> size; i++)
+            if(!(networks + i) -> SetHiddenNeurons(index, size))
+                return false;
+        return true;
+    }
+
+    bool Generation::SetOutputNeurons(int size)
+    {
+        for (int i = 0; i < this -> size; i++)
+            if(!(networks + i) -> SetOutputNeurons(size))
+                return false;
+        return true;
+    }
+
+#pragma endregion
 
 int main(int argc, char const *argv[])
 {
-    NeuralNetwork network(3);
+    Generation generation(50, 3);
+    std::cout << "1 - " << generation.SetInputNeurons(1) << "\n";
+    std::cout << "2 - " << generation.SetHiddenNeurons(0, 2) << "\n";
+    std::cout << "3 - " << generation.SetHiddenNeurons(1, 3) << "\n";
+    std::cout << "4 - " << generation.SetHiddenNeurons(2, 2) << "\n";
+    std::cout << "5 - " << generation.SetOutputNeurons(1) << "\n";
+    std::cout << "6 - " << generation.ConnectNetworks() << "\n";
 
-    #pragma region Initialization
-        network.SetInputNeurons(1);
-        network.SetHiddenNeurons(0, 2);
-        network.SetHiddenNeurons(1, 3);
-        network.SetHiddenNeurons(2, 2);
-        network.SetOutputNeurons(1);
+    // generation.SetTarget(12.30);
 
-        network.ConnectLayers();
-    #pragma endregion
+    generation.DisplayScores();
+    generation.SortByScore();
 
-    #pragma region Fixed Bias&Weight
-        network.SetInput(0, 1);
-        network.FireNetwork();
-        std::cout << "Result = " << network.GetOutput(0) << "\n";
+    generation.Randomize();
+    generation.Fire();
+    generation.DisplayScores();
 
-        network.SetInput(0, 2);
-        network.FireNetwork();
-        std::cout << "Result = " << network.GetOutput(0) << "\n";
-
-        network.SetInput(0, 3);
-        network.FireNetwork();
-        std::cout << "Result = " << network.GetOutput(0) << "\n";
-    #pragma endregion
-    
-    #pragma region Randomized Bias&Weight
-        network.RandomizeValues();
-        std::cout << "Randomize Called!" << "\n";
-        network.FireNetwork();
-        std::cout << "Result = " << network.GetOutput(0) << "\n";
-        
-        network.MutateNetwork();
-        std::cout << "Mutate Called!" << "\n";
-        network.FireNetwork();
-        std::cout << "Result = " << network.GetOutput(0) << "\n";
-        
-        network.MutateNetwork();
-        std::cout << "Mutate Called!" << "\n";
-        network.FireNetwork();
-        std::cout << "Result = " << network.GetOutput(0) << "\n";
-    #pragma endregion
-    
     return 0;
 }
