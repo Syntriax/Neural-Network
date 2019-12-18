@@ -4,6 +4,7 @@
 #define RandomRange 1
 #define InitialSynapseValue 0.0
 #define MutationRate 0.0001
+#define CrossOverRate 0.1
 
 class Synapse;
 class Neuron;
@@ -33,6 +34,7 @@ float RandomFloat(int min, int max)
             float bias;
         public:
             Synapse();
+            ~Synapse();
             void SetValue(float);
             void SetWeight(float);
             void SetBias(float);
@@ -41,7 +43,13 @@ float RandomFloat(int min, int max)
 
     Synapse::Synapse()
     {
+        // std::cout << "Created Synapse\n";
         this -> value = this -> weight = this -> bias = InitialSynapseValue;
+    }
+
+    Synapse::~Synapse()
+    {
+        // std::cout << "Deleted Synapse\n";
     }
 
     void Synapse::SetValue(float value)
@@ -79,6 +87,7 @@ float RandomFloat(int min, int max)
             int layerSize;
         public:
             Neuron();
+            ~Neuron();
             void ConnectIncomings(Synapse *, int);
             void ConnectForwards(Synapse *, int, int);
             void SetValue(float);
@@ -88,8 +97,15 @@ float RandomFloat(int min, int max)
 
     Neuron::Neuron()
     {
+        // std::cout << "Created Neuron\n";
         incomings = forwards = NULL;
         incomingsSize = forwardsSize = layerSize = 0;
+    }        
+
+
+    Neuron::~Neuron()
+    {
+        // std::cout << "Deleted Neuron\n";
     }
 
     void Neuron::Reset()
@@ -100,7 +116,8 @@ float RandomFloat(int min, int max)
 
     void Neuron::SetValue(float value)
     {
-        for (int i = 0; i < forwardsSize; i++)
+        int i;
+        for (i = 0; i < forwardsSize; i++)
             (forwards + i) -> SetValue(value);
     }
 
@@ -119,17 +136,18 @@ float RandomFloat(int min, int max)
 
     float Neuron::GetValue()
     {
+        int i;
         float result = 0.0;
 
         if(!incomings) return result;
 
-        for (int i = 0; i < incomingsSize; i++)
+        for (i = 0; i < incomingsSize; i++)
             result += (incomings + i) -> Fire();
 
 
         if(!forwards) return result;
 
-        for (int i = 0; i < forwardsSize; i++)
+        for (i = 0; i < forwardsSize; i++)
             (forwards + i * layerSize) -> SetValue(result);
 
         return result;
@@ -143,15 +161,18 @@ float RandomFloat(int min, int max)
             Synapse *synapses;
             int neuronSize;
             int synapseSize;
+            void _SwapSynapses(Synapse *, Synapse *);
             Neuron *_CreateNeurons(int);
             Synapse *_CreateSynapses(int);
         public:
             Layer();
             Layer(int);
             ~Layer();
+            void CopySynapses(Layer *);
             void FireLayer();
             void Mutate();
             void RandomizeValues();
+            void CrossOverSynapses(Layer *);
             bool CreateNeurons(int);
             bool ConnectPrevious(Layer *);
             bool ConnectForwards(Layer *);
@@ -160,6 +181,7 @@ float RandomFloat(int min, int max)
 
     Layer::Layer()
     {
+        // std::cout << "Created Layer\n";
         neuronSize = synapseSize = 0;
         neurons = NULL;
         synapses = NULL;
@@ -167,6 +189,7 @@ float RandomFloat(int min, int max)
 
     Layer::Layer(int size)
     {
+        // std::cout << "Deleted Layer\n";
         neuronSize = synapseSize = 0;
         synapses = NULL;
         neurons = _CreateNeurons(size);
@@ -174,17 +197,28 @@ float RandomFloat(int min, int max)
 
     Layer::~Layer()
     {
+        // std::cout << "Deleted Layer\n";
         if(neurons)  delete neurons;
         if(synapses) delete synapses;
+    }
+    
+    void Layer::_SwapSynapses(Synapse *first, Synapse *second)
+    {
+        Synapse temporary = Synapse();
+        temporary = *first;
+        *first = *second;
+        *second = temporary;
     }
 
     Neuron *Layer::_CreateNeurons(int size)
     {
+        int i;
         Neuron *newNeurons = NULL;
+        
         newNeurons = new Neuron[size];
 
         if(newNeurons)
-            for (int i = 0; i < size; i++)
+            for (i = 0; i < size; i++)
                 (newNeurons + i) -> Reset();
 
         return newNeurons;
@@ -198,9 +232,17 @@ float RandomFloat(int min, int max)
         return newSynapses;
     }
 
+    void Layer::CopySynapses(Layer *from)
+    {
+        int counter;
+        for (counter = 0; counter < this -> synapseSize; counter++)
+            *(synapses + counter) = *((from -> synapses) + counter);
+    }
+
     void Layer::FireLayer()
     {
-        for (int i = 0; i < neuronSize; i++)
+        int i;
+        for (i = 0; i < neuronSize; i++)
             (neurons + i) -> GetValue();
     }
 
@@ -208,7 +250,9 @@ float RandomFloat(int min, int max)
     {
         float bias;
         float weight;
-        for (int i = 0; i < synapseSize; i++)
+        int i;
+
+        for (i = 0; i < synapseSize; i++)
         {
             bias = RandomFloat(-RandomRange, RandomRange);
             weight = RandomFloat(-RandomRange, RandomRange);
@@ -222,8 +266,9 @@ float RandomFloat(int min, int max)
         float bias = 0.0;
         float weight = 0.0;
         float mutationValue = 0.0;
+        int i;
 
-        for (int i = 0; i < synapseSize; i++)
+        for (i = 0; i < synapseSize; i++)
         {
             mutationValue = RandomFloat(0, 1);
             if(mutationValue <= MutationRate)
@@ -236,9 +281,17 @@ float RandomFloat(int min, int max)
         }
     }
 
+    void Layer::CrossOverSynapses(Layer *other)
+    {
+        int thisCounter;
+        for (thisCounter = 0; thisCounter < synapseSize; thisCounter++)
+            if(RandomFloat(0, 1) < CrossOverRate)
+                _SwapSynapses((synapses + thisCounter), (other -> synapses + thisCounter));
+    }
+
     bool Layer::CreateNeurons(int size)
     {
-        if(neurons = _CreateNeurons(size))
+        if((neurons = _CreateNeurons(size)))
             neuronSize = size;
         return neurons;
     }
@@ -247,25 +300,24 @@ float RandomFloat(int min, int max)
     {
         int previousSize = previous -> GetSize();
         int synapseCount = (this -> neuronSize) * previousSize;
-        int currentIndex = 0;
-        Synapse *currentSynapse = NULL;
+        int thisNeuron;
+        int prevNeuron;
         Neuron *currentNeuron = NULL;
 
-        if(synapses) delete synapses;
+        if(synapses)
+        {
+            delete synapses;
+            synapses = NULL;
+        }
         // synapses = (Synapse *) new char[sizeof(Synapse) * synapseCount];
         synapses = _CreateSynapses(synapseCount);
         if(!synapses) return false;
 
 
-        for (int thisNeuron = 0; thisNeuron < this -> neuronSize; thisNeuron++)
+        for (thisNeuron = 0; thisNeuron < this -> neuronSize; thisNeuron++)
         {
-            for (int prevNeuron = 0; prevNeuron < previousSize; prevNeuron++)
-            {
-                currentIndex = thisNeuron * previousSize + prevNeuron;
-                currentSynapse = (synapses + currentIndex);
+            for (prevNeuron = 0; prevNeuron < previousSize; prevNeuron++)
                 currentNeuron = (previous -> neurons) + prevNeuron;
-                // *currentSynapse = Synapse();
-            }
 
             currentNeuron = (neurons + thisNeuron);
             currentNeuron -> ConnectIncomings((synapses + thisNeuron * previousSize), previousSize);
@@ -278,12 +330,14 @@ float RandomFloat(int min, int max)
     bool Layer::ConnectForwards(Layer *forwards)
     {
         int forwardsSize = forwards -> neuronSize;
+        int thisNeuron;
+        int forwardNeuron;
         Neuron *currentNeuron = NULL;
 
-        for (int thisNeuron = 0; thisNeuron < this -> neuronSize; thisNeuron++)
+        for (thisNeuron = 0; thisNeuron < this -> neuronSize; thisNeuron++)
         {
             currentNeuron = (neurons + thisNeuron);
-            for (int forwardNeuron = 0; forwardNeuron < forwardsSize; forwardNeuron++)
+            for (forwardNeuron = 0; forwardNeuron < forwardsSize; forwardNeuron++)
                 currentNeuron -> ConnectForwards(forwards -> synapses + thisNeuron, forwardsSize, this -> neuronSize);
         }
         return true;
@@ -338,13 +392,19 @@ float RandomFloat(int min, int max)
             Layer *hidden;
             Output *output;
             int hiddenSize;
+            Input *_CreateInput();
+            Layer *_CreateLayers(int);
+            Output *_CreateOutput();
         public:
             NeuralNetwork();
             NeuralNetwork(int);
             ~NeuralNetwork();
+            void Copy(const NeuralNetwork &);
             void FireNetwork();
             void RandomizeValues();
             void MutateNetwork();
+            void Reset();
+            void CrossOverNetwork(NeuralNetwork *);
             bool SetInputNeurons(int);
             bool SetHiddenNeurons(int, int);
             bool SetOutputNeurons(int);
@@ -352,11 +412,37 @@ float RandomFloat(int min, int max)
             bool SetLayer(int);
             float GetOutput(int);
             float GetScore(float, int);
+            int GetHiddenSize();
             void SetInput(float, int);
     };
 
+    Input *NeuralNetwork::_CreateInput()
+    {
+        Input *newInputs = NULL;
+        newInputs = new Input();
+
+        return newInputs;
+    }
+
+    Layer *NeuralNetwork::_CreateLayers(int size)
+    {
+        Layer *newLayers = NULL;
+        newLayers = new Layer[size];
+
+        return newLayers;
+    }
+
+    Output *NeuralNetwork::_CreateOutput()
+    {
+        Output *newOutputs = NULL;
+        newOutputs = new Output();
+
+        return newOutputs;
+    }
+
     NeuralNetwork::NeuralNetwork()
     {
+        // std::cout << "Created NeuralNetwork\n";
         hiddenSize = 0;
         input = NULL;
         hidden = NULL;
@@ -365,44 +451,87 @@ float RandomFloat(int min, int max)
 
     NeuralNetwork::NeuralNetwork(int hiddenSize)
     {
+        // std::cout << "Created NeuralNetwork\n";
         this -> hiddenSize = hiddenSize;
-        input  = new Input();
-        hidden = new Layer(hiddenSize);
-        output = new Output();
+        input  = _CreateInput();
+        hidden = _CreateLayers(hiddenSize);
+        output = _CreateOutput();
     }
 
     NeuralNetwork::~NeuralNetwork()
     {
-        if(input)  delete input;
-        if(hidden) delete hidden;
-        if(output) delete output;
+        // std::cout << "Deleted NeuralNetwork\n";
+        if(input)  
+            delete input;
+        if(hidden) 
+            delete hidden;
+        if(output)
+            delete output;
+    }
+
+    void NeuralNetwork::Copy(const NeuralNetwork &parameter)
+    {
+        int i;
+
+        input -> CopySynapses(parameter.input);
+        
+        for (i = 0; i < hiddenSize; i++)
+            (hidden + i) -> CopySynapses(parameter.hidden + i);
+            
+        output -> CopySynapses(parameter.output);
     }
 
     void NeuralNetwork::FireNetwork()
     {
-        for (int i = 0; i < hiddenSize; i++)
+        int i;
+
+        for (i = 0; i < hiddenSize; i++)
             (hidden + i) -> FireLayer();
 
         output -> FireLayer();
     }
+
     void NeuralNetwork::MutateNetwork()
     {
+        int i;
+
         input -> Mutate();
 
-        for (int i = 0; i < hiddenSize; i++)
+        for (i = 0; i < hiddenSize; i++)
             (hidden + i) -> Mutate();
 
         output -> Mutate();
     }
 
+    void NeuralNetwork::CrossOverNetwork(NeuralNetwork *other)
+    {
+        int i;
+
+        input -> CrossOverSynapses(other -> input);
+
+        for (i = 0; i < hiddenSize; i++)
+            (hidden + i) -> CrossOverSynapses((other -> hidden) + i);
+
+        output -> CrossOverSynapses(other -> output);
+    }
+
     void NeuralNetwork::RandomizeValues()
     {
+        int i;
+
         input -> RandomizeValues();
 
-        for (int i = 0; i < hiddenSize; i++)
+        for (i = 0; i < hiddenSize; i++)
             (hidden + i) -> RandomizeValues();
 
         output -> RandomizeValues();
+    }
+
+    void NeuralNetwork::Reset()
+    {
+        input = NULL;
+        hidden = NULL;
+        output = NULL;
     }
 
     bool NeuralNetwork::SetInputNeurons(int size)
@@ -422,10 +551,12 @@ float RandomFloat(int min, int max)
 
     bool NeuralNetwork::ConnectLayers()
     {
+        int i;
+
         if(!hidden -> ConnectPrevious(input))
             return false;
 
-        for (int i = 1; i < hiddenSize; i++)
+        for (i = 1; i < hiddenSize; i++)
             if(!(hidden + i) -> ConnectPrevious((hidden + i - 1)))
                 return false;
 
@@ -438,9 +569,10 @@ float RandomFloat(int min, int max)
     bool NeuralNetwork::SetLayer(int hiddenSize)
     {
         this -> hiddenSize = hiddenSize;
-        input  = new Input();
-        hidden = new Layer(hiddenSize);
-        output = new Output();
+        input  = _CreateInput();
+        hidden = _CreateLayers(hiddenSize);
+        output = _CreateOutput();
+        return input && hidden && output;
     }
 
     float NeuralNetwork::GetOutput(int index = 0)
@@ -452,6 +584,10 @@ float RandomFloat(int min, int max)
     {
         float result = GetOutput(index) - target;
         return result < 0.0 ? -result : result;
+    }
+    int NeuralNetwork::GetHiddenSize()
+    {
+        return hiddenSize;
     }
 
     void NeuralNetwork::SetInput(float value, int index = 0)
@@ -467,7 +603,7 @@ float RandomFloat(int min, int max)
             int size;
             int step;
             float target;
-            void SwapNetworks(NeuralNetwork *, NeuralNetwork *);
+            void _SwapNetworks(NeuralNetwork *, NeuralNetwork *);
             NeuralNetwork *_CreateNetworks(int, int);
         public:
             Generation();
@@ -488,6 +624,7 @@ float RandomFloat(int min, int max)
 
     Generation::Generation()
     {
+        // std::cout << "Created Generation\n";
         step = 0;
         networks = NULL;
         size = 0;
@@ -496,6 +633,7 @@ float RandomFloat(int min, int max)
 
     Generation::Generation(int size, int hiddenSizes)
     {
+        // std::cout << "Created Generation\n";
         step = 0;
         target = 0.0;
         this -> size = size;
@@ -504,16 +642,18 @@ float RandomFloat(int min, int max)
 
     Generation::~Generation()
     {
+        // std::cout << "Deleted Generation\n";
         if(networks) delete networks;
     }
 
     NeuralNetwork *Generation::_CreateNetworks(int size, int hiddenSizes)
     {
+        int i;
         NeuralNetwork *newNetworks = NULL;
         newNetworks = new NeuralNetwork[size];
 
         if(newNetworks)
-            for (int i = 0; i < size; i++)
+            for (i = 0; i < size; i++)
                 (newNetworks + i) -> SetLayer(hiddenSizes);
 
         return newNetworks;
@@ -521,37 +661,43 @@ float RandomFloat(int min, int max)
 
     void Generation::Randomize()
     {
-        for (int i = 0; i < this -> size; i++)
+        int i;
+        for (i = 0; i < this -> size; i++)
             (networks + i) -> RandomizeValues();
     }
 
     void Generation::Fire()
     {
-        for (int i = 0; i < this -> size; i++)
+        int i;
+        for (i = 0; i < this -> size; i++)
             (networks + i) -> FireNetwork();
     }
 
-    void Generation::SwapNetworks(NeuralNetwork *first, NeuralNetwork *second)
+    void Generation::_SwapNetworks(NeuralNetwork *first, NeuralNetwork *second)
     {
         NeuralNetwork temp;
         temp = *first;
         *first = *second;
         *second = temp;
+        temp.Reset();
     }
 
     void Generation::DisplayScores(int index = 0)
     {
+        int i;
         std::cout << "----Scores----\n";
-        for (int i = 0; i < this -> size; i++)
+        for (i = 0; i < this -> size; i++)
             std::cout << i << " -> " << (networks + i) -> GetScore(target, index) << "\n";
     }
 
     void Generation::SortByScore(int index = 0)
     {
-        for (int i = 0; i < size - 1; i++)
-            for (int j = i + 1; j < size; j++)
+        int i;
+        int j;
+        for (i = 0; i < size - 1; i++)
+            for (j = i + 1; j < size; j++)
                 if((networks + i) -> GetScore(target, index) > (networks + j) -> GetScore(target, index))
-                    SwapNetworks((networks + i), (networks + j));
+                    _SwapNetworks((networks + i), (networks + j));
     }
 
     void Generation::SetTarget(float target)
@@ -561,7 +707,8 @@ float RandomFloat(int min, int max)
 
     void Generation::SetInput(float value, int index = 0)
     {
-        for (int i = 0; i < this -> size; i++)
+        int i;
+        for (i = 0; i < this -> size; i++)
             (networks + i) -> SetInput(value, index);
     }
 
@@ -574,7 +721,8 @@ float RandomFloat(int min, int max)
 
     bool Generation::ConnectNetworks()
     {
-        for (int i = 0; i < this -> size; i++)
+        int i;
+        for (i = 0; i < this -> size; i++)
             if(!(networks + i) -> ConnectLayers())
                 return false;
 
@@ -583,7 +731,8 @@ float RandomFloat(int min, int max)
 
     bool Generation::SetInputNeurons(int size)
     {
-        for (int i = 0; i < this -> size; i++)
+        int i;
+        for (i = 0; i < this -> size; i++)
             if(!(networks + i) -> SetInputNeurons(size))
                 return false;
         return true;
@@ -591,7 +740,8 @@ float RandomFloat(int min, int max)
 
     bool Generation::SetHiddenNeurons(int index, int size)
     {
-        for (int i = 0; i < this -> size; i++)
+        int i;
+        for (i = 0; i < this -> size; i++)
             if(!(networks + i) -> SetHiddenNeurons(index, size))
                 return false;
         return true;
@@ -599,17 +749,18 @@ float RandomFloat(int min, int max)
 
     bool Generation::SetOutputNeurons(int size)
     {
-        for (int i = 0; i < this -> size; i++)
+        int i;
+        for (i = 0; i < this -> size; i++)
             if(!(networks + i) -> SetOutputNeurons(size))
                 return false;
         return true;
     }
 
 #pragma endregion
-
-int main(int argc, char const *argv[])
+int main()
 {
     Generation generation(50, 3);
+
     std::cout << "1 - ";
     std::cout << generation.SetInputNeurons(1) << "\n";
     std::cout << "2 - ";
@@ -631,6 +782,6 @@ int main(int argc, char const *argv[])
     std::cout << "-----------SORTING-----------\n";
     generation.SortByScore();
     generation.DisplayScores();
-
+    
     return 0;
 }
