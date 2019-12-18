@@ -82,10 +82,17 @@ float RandomFloat(int min, int max)
             void ConnectIncomings(Synapse *, int);
             void ConnectForwards(Synapse *, int, int);
             void SetValue(float);
+            void Reset();
             float GetValue();
     };
 
     Neuron::Neuron()
+    {
+        incomings = forwards = NULL;
+        incomingsSize = forwardsSize = layerSize = 0;
+    }
+
+    void Neuron::Reset()
     {
         incomings = forwards = NULL;
         incomingsSize = forwardsSize = layerSize = 0;
@@ -137,6 +144,7 @@ float RandomFloat(int min, int max)
             int neuronSize;
             int synapseSize;
             Neuron *_CreateNeurons(int);
+            Synapse *_CreateSynapses(int);
         public:
             Layer();
             Layer(int);
@@ -173,13 +181,21 @@ float RandomFloat(int min, int max)
     Neuron *Layer::_CreateNeurons(int size)
     {
         Neuron *newNeurons = NULL;
-        newNeurons = (Neuron *) new char[sizeof(Neuron) * size];
+        newNeurons = new Neuron[size];
 
         if(newNeurons)
             for (int i = 0; i < size; i++)
-                *(newNeurons + i) = Neuron();
+                (newNeurons + i) -> Reset();
 
         return newNeurons;
+    }
+
+    Synapse *Layer::_CreateSynapses(int size)
+    {
+        Synapse *newSynapses = NULL;
+        newSynapses = new Synapse[size];
+
+        return newSynapses;
     }
 
     void Layer::FireLayer()
@@ -236,7 +252,8 @@ float RandomFloat(int min, int max)
         Neuron *currentNeuron = NULL;
 
         if(synapses) delete synapses;
-        synapses = (Synapse *) new char[sizeof(Synapse) * synapseCount];
+        // synapses = (Synapse *) new char[sizeof(Synapse) * synapseCount];
+        synapses = _CreateSynapses(synapseCount);
         if(!synapses) return false;
 
 
@@ -247,8 +264,7 @@ float RandomFloat(int min, int max)
                 currentIndex = thisNeuron * previousSize + prevNeuron;
                 currentSynapse = (synapses + currentIndex);
                 currentNeuron = (previous -> neurons) + prevNeuron;
-
-                *currentSynapse = Synapse();
+                // *currentSynapse = Synapse();
             }
 
             currentNeuron = (neurons + thisNeuron);
@@ -333,6 +349,7 @@ float RandomFloat(int min, int max)
             bool SetHiddenNeurons(int, int);
             bool SetOutputNeurons(int);
             bool ConnectLayers();
+            bool SetLayer(int);
             float GetOutput(int);
             float GetScore(float, int);
             void SetInput(float, int);
@@ -418,6 +435,14 @@ float RandomFloat(int min, int max)
         return true;
     }
 
+    bool NeuralNetwork::SetLayer(int hiddenSize)
+    {
+        this -> hiddenSize = hiddenSize;
+        input  = new Input();
+        hidden = new Layer(hiddenSize);
+        output = new Output();
+    }
+
     float NeuralNetwork::GetOutput(int index = 0)
     {
         return output -> GetValue(index);
@@ -485,11 +510,11 @@ float RandomFloat(int min, int max)
     NeuralNetwork *Generation::_CreateNetworks(int size, int hiddenSizes)
     {
         NeuralNetwork *newNetworks = NULL;
-        newNetworks = (NeuralNetwork *) new char[sizeof(NeuralNetwork) * size];
+        newNetworks = new NeuralNetwork[size];
 
         if(newNetworks)
             for (int i = 0; i < size; i++)
-                *(newNetworks + i) = NeuralNetwork(hiddenSizes);
+                (newNetworks + i) -> SetLayer(hiddenSizes);
 
         return newNetworks;
     }
@@ -525,7 +550,7 @@ float RandomFloat(int min, int max)
     {
         for (int i = 0; i < size - 1; i++)
             for (int j = i + 1; j < size; j++)
-                if((networks + i) -> GetScore(target, index) < (networks + j) -> GetScore(target, index))
+                if((networks + i) -> GetScore(target, index) > (networks + j) -> GetScore(target, index))
                     SwapNetworks((networks + i), (networks + j));
     }
 
@@ -585,20 +610,26 @@ float RandomFloat(int min, int max)
 int main(int argc, char const *argv[])
 {
     Generation generation(50, 3);
-    std::cout << "1 - " << generation.SetInputNeurons(1) << "\n";
-    std::cout << "2 - " << generation.SetHiddenNeurons(0, 2) << "\n";
-    std::cout << "3 - " << generation.SetHiddenNeurons(1, 3) << "\n";
-    std::cout << "4 - " << generation.SetHiddenNeurons(2, 2) << "\n";
-    std::cout << "5 - " << generation.SetOutputNeurons(1) << "\n";
-    std::cout << "6 - " << generation.ConnectNetworks() << "\n";
+    std::cout << "1 - ";
+    std::cout << generation.SetInputNeurons(1) << "\n";
+    std::cout << "2 - ";
+    std::cout << generation.SetHiddenNeurons(0, 2) << "\n";
+    std::cout << "3 - ";
+    std::cout << generation.SetHiddenNeurons(1, 3) << "\n";
+    std::cout << "4 - ";
+    std::cout << generation.SetHiddenNeurons(2, 2) << "\n";
+    std::cout << "5 - ";
+    std::cout << generation.SetOutputNeurons(1) << "\n";
+    std::cout << "6 - ";
+    std::cout << generation.ConnectNetworks() << "\n";
 
     // generation.SetTarget(12.30);
 
-    generation.DisplayScores();
-    generation.SortByScore();
-
     generation.Randomize();
     generation.Fire();
+    generation.DisplayScores();
+    std::cout << "-----------SORTING-----------\n";
+    generation.SortByScore();
     generation.DisplayScores();
 
     return 0;
