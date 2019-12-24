@@ -1,3 +1,7 @@
+/*
+    Author: Asrın "Syntriax" Doğan
+    Mail: asrindogan99@gmail.com
+*/
 #include <iostream>
 #include <time.h>
 
@@ -5,7 +9,7 @@
 #define InitialSynapseValue 0.0
 #define MutationRate 0.25
 #define CrossOverRate 0.25
-#define PopCrossOverRate 0.7
+#define PopCrossOverRate 0.75
 
 class Synapse;
 class Neuron;
@@ -15,14 +19,14 @@ class Output;
 class NeuralNetwork;
 class Generation;
 
-float RandomFloat(int min, int max)
+double RandomDouble(int min, int max)
 {
-    float result;
-    int value;
+    double result;
+    long int value;
     static unsigned long int counter = time(0);
     srand(time(0) * counter++);
-    value = ((rand() * counter) % ((max - min) * 100000));
-    result = (float)value / 100000.0 + (float)min;
+    value = ((rand() * counter) % ((max - min) * 100000000));
+    result = (double)value / 100000000.0 + (double)min;
     return result;
 }
 
@@ -30,19 +34,19 @@ float RandomFloat(int min, int max)
     class Synapse
     {
         private:
-            float weight;
-            float value;
-            float bias;
+            double weight;
+            double value;
+            double bias;
         public:
             Synapse();
             ~Synapse();
-            void SetValue(float);
-            void SetWeight(float);
-            void SetBias(float);
-            float GetWeight();
-            float GetValue();
-            float GetBias();
-            float Fire();
+            void SetValue(double);
+            void SetWeight(double);
+            void SetBias(double);
+            double GetWeight();
+            double GetValue();
+            double GetBias();
+            double Fire();
     };
 
     Synapse::Synapse()
@@ -54,39 +58,39 @@ float RandomFloat(int min, int max)
     {
     }
 
-    void Synapse::SetValue(float value)
+    void Synapse::SetValue(double value)
     {
         this -> value = value;
     }
 
-    void Synapse::SetWeight(float weight)
+    void Synapse::SetWeight(double weight)
     {
         this -> weight = weight;
     }
 
-    void Synapse::SetBias(float bias)
+    void Synapse::SetBias(double bias)
     {
         this -> bias = bias;
     }
 
-    float Synapse::GetWeight()
+    double Synapse::GetWeight()
     {
         return weight;
     }
     
-    float Synapse::GetValue()
+    double Synapse::GetValue()
     {
         return value;
     }
 
-    float Synapse::GetBias()
+    double Synapse::GetBias()
     {
         return bias;
     }
 
-    float Synapse::Fire()
+    double Synapse::Fire()
     {
-        float result = 0.0;
+        double result = 0.0;
 
         result = this -> value * this -> weight + this -> bias;
 
@@ -107,9 +111,9 @@ float RandomFloat(int min, int max)
             ~Neuron();
             void ConnectIncomings(Synapse *, int);
             void ConnectForwards(Synapse *, int, int);
-            void SetValue(float);
+            void SetValue(double);
             void Reset();
-            float GetValue();
+            double GetValue();
     };
 
     Neuron::Neuron()
@@ -129,7 +133,7 @@ float RandomFloat(int min, int max)
         incomingsSize = forwardsSize = layerSize = 0;
     }
 
-    void Neuron::SetValue(float value)
+    void Neuron::SetValue(double value)
     {
         int i;
         for (i = 0; i < forwardsSize; i++)
@@ -149,10 +153,10 @@ float RandomFloat(int min, int max)
         this -> layerSize = layerSize;
     }
 
-    float Neuron::GetValue()
+    double Neuron::GetValue()
     {
         int i;
-        float result = 0.0;
+        double result = 0.0;
 
         if(!incomings) return result;
 
@@ -261,14 +265,14 @@ float RandomFloat(int min, int max)
 
     void Layer::RandomizeValues()
     {
-        float bias;
-        float weight;
+        double bias;
+        double weight;
         int i;
 
         for (i = 0; i < synapseSize; i++)
         {
-            bias = RandomFloat(-RandomRange, RandomRange);
-            weight = RandomFloat(-RandomRange, RandomRange);
+            bias = RandomDouble(-RandomRange, RandomRange);
+            weight = RandomDouble(-RandomRange, RandomRange);
             (synapses + i) -> SetBias(bias);
             (synapses + i) -> SetWeight(weight);
         }
@@ -276,18 +280,18 @@ float RandomFloat(int min, int max)
 
     void Layer::Mutate()
     {
-        float bias = 0.0;
-        float weight = 0.0;
-        float mutationValue = 0.0;
+        double bias = 0.0;
+        double weight = 0.0;
+        double mutationValue = 0.0;
         int i;
 
         for (i = 0; i < synapseSize; i++)
         {
-            mutationValue = RandomFloat(0, 1);
+            mutationValue = RandomDouble(0, 1);
             if(mutationValue <= MutationRate)
             {
-                bias   = RandomFloat(-RandomRange, RandomRange);
-                weight = RandomFloat(-RandomRange, RandomRange);
+                bias   = RandomDouble(-RandomRange, RandomRange);
+                weight = RandomDouble(-RandomRange, RandomRange);
                 (synapses + i) -> SetBias(bias);
                 (synapses + i) -> SetWeight(weight);
             }
@@ -298,7 +302,7 @@ float RandomFloat(int min, int max)
     {
         int thisCounter;
         for (thisCounter = 0; thisCounter < synapseSize; thisCounter++)
-            if(RandomFloat(0, 1) < CrossOverRate)
+            if(RandomDouble(0, 1) < CrossOverRate)
                 _SwapSynapses((synapses + thisCounter), (other -> synapses + thisCounter));
     }
 
@@ -364,11 +368,11 @@ float RandomFloat(int min, int max)
         {
             public:
                 Input();
-                void SetValue(float, int);
+                void SetValue(double, int);
         };
 
         Input::Input() : Layer() {}
-        void Input::SetValue(float value, int index = 0)
+        void Input::SetValue(double value, int index = 0)
         {
             if(index >= this -> neuronSize || index < 0)
                 return;
@@ -380,13 +384,13 @@ float RandomFloat(int min, int max)
         {
             public:
                 Output();
-                float GetValue(int);
+                double GetValue(int);
         };
 
         Output::Output() : Layer() {}
-        float Output::GetValue(int index = 0)
+        double Output::GetValue(int index = 0)
         {
-            float result = 0.0;
+            double result = 0.0;
 
             if(index >= this -> neuronSize || index < 0)
                 return result;
@@ -404,7 +408,7 @@ float RandomFloat(int min, int max)
             Layer *hidden;
             Output *output;
             int hiddenSize;
-            float score;
+            double score;
             Input *_CreateInput();
             Layer *_CreateLayers(int);
             Output *_CreateOutput();
@@ -424,13 +428,13 @@ float RandomFloat(int min, int max)
             bool SetOutputNeurons(int);
             bool ConnectLayers();
             bool SetLayer(int);
-            float GetOutput(int);
-            float GetError(int, float);
-            float GetPrediction(int);
-            float GetScore();
+            double GetOutput(int);
+            double GetError(int, double);
+            double GetPrediction(int);
+            double GetScore();
             int GetHiddenSize();
-            void SetScore(float);
-            void SetInput(float, int);
+            void SetScore(double);
+            void SetInput(double, int);
     };
 
     Input *NeuralNetwork::_CreateInput()
@@ -548,7 +552,7 @@ float RandomFloat(int min, int max)
         FILE *file = fopen("Data/BestSynapses.txt", "w");
         for (i = 0; i < count; i++)
         {
-            fprintf(file, "%f, %f, ", synapsePtr -> GetWeight(), synapsePtr -> GetBias());
+            fprintf(file, "%lf, %lf, ", synapsePtr -> GetWeight(), synapsePtr -> GetBias());
             synapsePtr++;
         }
         
@@ -559,7 +563,7 @@ float RandomFloat(int min, int max)
             synapsePtr = (network -> hidden + j) -> synapses;
             for (i = 0; i < count; i++)
             {
-                fprintf(file, "%f, %f, ", synapsePtr -> GetWeight(), synapsePtr -> GetBias());
+                fprintf(file, "%lf, %lf, ", synapsePtr -> GetWeight(), synapsePtr -> GetBias());
                 synapsePtr++;
             }
         }
@@ -570,7 +574,7 @@ float RandomFloat(int min, int max)
         std::cout << count << "\n";
         for (i = 0; i < count; i++)
         {
-            fprintf(file, "%f, %f, ", synapsePtr -> GetWeight(), synapsePtr -> GetBias());
+            fprintf(file, "%lf, %lf, ", synapsePtr -> GetWeight(), synapsePtr -> GetBias());
             synapsePtr++;
         }
         fclose(file);
@@ -624,24 +628,24 @@ float RandomFloat(int min, int max)
         return input && hidden && output;
     }
 
-    float NeuralNetwork::GetOutput(int index = 0)
+    double NeuralNetwork::GetOutput(int index = 0)
     {
         return output -> GetValue(index);
     }
 
-    float NeuralNetwork::GetError(int index = 0, float target = 0.0)
+    double NeuralNetwork::GetError(int index = 0, double target = 0.0)
     {
-        float result = GetOutput(index) - target;
+        double result = GetOutput(index) - target;
         return result < 0.0 ? -result : result;
     }
 
-    float NeuralNetwork::GetPrediction(int index = 0)
+    double NeuralNetwork::GetPrediction(int index = 0)
     {
-        float result = GetOutput(index);
+        double result = GetOutput(index);
         return result;
     }
 
-    float NeuralNetwork::GetScore()
+    double NeuralNetwork::GetScore()
     {
         return score;
     }
@@ -651,12 +655,12 @@ float RandomFloat(int min, int max)
         return hiddenSize;
     }
 
-    void NeuralNetwork::SetInput(float value, int index = 0)
+    void NeuralNetwork::SetInput(double value, int index = 0)
     {
         input -> SetValue(value, index);
     }
 
-    void NeuralNetwork::SetScore(float value)
+    void NeuralNetwork::SetScore(double value)
     {
         score = value;
     }
@@ -668,7 +672,7 @@ float RandomFloat(int min, int max)
             NeuralNetwork *networks;
             int size;
             int step;
-            float target;
+            double target;
             void _SwapNetworks(NeuralNetwork *, NeuralNetwork *);
             NeuralNetwork *_CreateNetworks(int, int);
         public:
@@ -680,8 +684,8 @@ float RandomFloat(int min, int max)
             void SortByScore();
             void DisplayScores(int);
             void DisplayBest(int);
-            void SetTarget(float);
-            void SetInput(float, int);
+            void SetTarget(double);
+            void SetInput(double, int);
             void NextGeneration();
             void WriteBestToFile();
             void UpdateScores();
@@ -691,8 +695,8 @@ float RandomFloat(int min, int max)
             bool SetInputNeurons(int);
             bool SetHiddenNeurons(int, int);
             bool SetOutputNeurons(int);
-            float GetBestPrediction(int);
-            float GetError(int);
+            double GetBestPrediction(int);
+            double GetError(int);
             int GetStep();
     };
 
@@ -768,7 +772,7 @@ float RandomFloat(int min, int max)
 
     void Generation::UpdateScores()
     {
-        float scoreToAdd;
+        double scoreToAdd;
         int i;
         for (i = 0; i < size; i++)
         {
@@ -784,15 +788,16 @@ float RandomFloat(int min, int max)
             (networks + i) -> SetScore(0.0);
     }
 
-    float Generation::GetBestPrediction(int index = 0)
+    double Generation::GetBestPrediction(int index = 0)
     {
         return networks -> GetPrediction(index);
     }
 
-    float Generation::GetError(int index = 0)
+    double Generation::GetError(int index = 0)
     {
         return (networks + index) -> GetError(0, target);
     }
+
     void Generation::SortByScore()
     {
         int i;
@@ -803,12 +808,12 @@ float RandomFloat(int min, int max)
                     _SwapNetworks((networks + i), (networks + j));
     }
 
-    void Generation::SetTarget(float target)
+    void Generation::SetTarget(double target)
     {
         this -> target = target;
     }
 
-    void Generation::SetInput(float value, int index = 0)
+    void Generation::SetInput(double value, int index = 0)
     {
         int i;
         for (i = 0; i < this -> size; i++)
@@ -840,7 +845,7 @@ float RandomFloat(int min, int max)
             first -> Copy(*(networks + 0));
             second -> Copy(*(networks + 1));
 
-            if(RandomFloat(0, 1) < 0.5)
+            if(RandomDouble(0, 1) < 0.5)
                 first -> CrossOverNetwork(second);
             else
             {
@@ -897,6 +902,7 @@ float RandomFloat(int min, int max)
                 return false;
         return true;
     }
+
     int Generation::GetStep()
     {
         return step;
@@ -908,30 +914,30 @@ int main()
     FILE *inputFile;
     FILE *outputFile;
     int decision;
-    float currentError;
+    double currentError;
     int trainCounter;
 
     int inputCounter;
-    int floatCounter;
+    int doubleCounter;
     int groupSize;
-    float trainInputs[30][5];
-    float testInputs[120][5];
+    double trainInputs[30][5];
+    double testInputs[120][5];
     Generation generation(50, 5);
 
     inputFile = fopen("Data/train.data", "r");
     for (inputCounter = 0; inputCounter < 30; inputCounter++)
-        for (floatCounter = 0; floatCounter < 5; floatCounter++)
-            fscanf(inputFile, "%f,", &trainInputs[inputCounter][floatCounter]);
+        for (doubleCounter = 0; doubleCounter < 5; doubleCounter++)
+            fscanf(inputFile, "%lf,", &trainInputs[inputCounter][doubleCounter]);
     fclose(inputFile);
 
     inputFile = fopen("Data/test.data", "r");
     for (inputCounter = 0; inputCounter < 120; inputCounter++)
-        for (floatCounter = 0; floatCounter < 5; floatCounter++)
-            fscanf(inputFile, "%f,", &testInputs[inputCounter][floatCounter]);
+        for (doubleCounter = 0; doubleCounter < 5; doubleCounter++)
+            fscanf(inputFile, "%lf,", &testInputs[inputCounter][doubleCounter]);
     fclose(inputFile);
 
     std::cout << "Inputs   Are Getting Set: ";
-    std::cout << (generation.SetInputNeurons(4) ? "Successfull!" : "Failed!") << "\n";
+    std::cout << (generation.SetInputNeurons(4)     ? "Successfull!" : "Failed!") << "\n";
     std::cout << "Hidden 1 Are Getting Set: ";
     std::cout << (generation.SetHiddenNeurons(0, 2) ? "Successfull!" : "Failed!") << "\n";
     std::cout << "Hidden 2 Are Getting Set: ";
@@ -943,15 +949,17 @@ int main()
     std::cout << "Hidden 5 Are Getting Set: ";
     std::cout << (generation.SetHiddenNeurons(4, 2) ? "Successfull!" : "Failed!") << "\n";
     std::cout << "Outputs  Are Getting Set: ";
-    std::cout << (generation.SetOutputNeurons(1) ? "Successfull!" : "Failed!") << "\n";
+    std::cout << (generation.SetOutputNeurons(1)    ? "Successfull!" : "Failed!") << "\n";
     std::cout << "Networks Are Getting Connected: ";
-    std::cout << (generation.ConnectNetworks() ? "Successfull!" : "Failed!") << "\n";
+    std::cout << (generation.ConnectNetworks()      ? "Successfull!" : "Failed!") << "\n";
 
+    std::cout << "Networks Are Getting Randomized: ";
     generation.Randomize();
+    std::cout << "Done!\n";
     
     do
     {
-        std::cout << "[-1] Test\n[-2] Best to File\n[-3] Exit\nAny Positive Number for train count\nDecision: ";
+        std::cout << "\n[-1] Test\n[-2] Best to File\n[-3] Exit\nAny Positive Number for train count\nDecision: ";
         std::cin >> decision;
         
         switch (decision)
@@ -971,8 +979,8 @@ int main()
                         generation.ResetScores();
                         for (groupSize = 0; groupSize < 3; groupSize++)
                         {
-                            for (floatCounter = 0; floatCounter < 4; floatCounter++)
-                                generation.SetInput(trainInputs[inputCounter * 3 + groupSize][floatCounter], floatCounter);
+                            for (doubleCounter = 0; doubleCounter < 4; doubleCounter++)
+                                generation.SetInput(trainInputs[inputCounter * 3 + groupSize][doubleCounter], doubleCounter);
                             generation.SetTarget(trainInputs[inputCounter * 3 + groupSize][4]);
                             generation.Fire();
                             generation.UpdateScores();
@@ -988,13 +996,13 @@ int main()
                 outputFile = fopen("Data/results.data", "w");
                 for (inputCounter = 0; inputCounter < 120; inputCounter++)
                 {
-                    for (floatCounter = 0; floatCounter < 4; floatCounter++)
-                        generation.SetInput(testInputs[inputCounter][floatCounter], floatCounter);
+                    for (doubleCounter = 0; doubleCounter < 4; doubleCounter++)
+                        generation.SetInput(testInputs[inputCounter][doubleCounter], doubleCounter);
                     generation.SetTarget(testInputs[inputCounter][4]);
                     
                     generation.Fire();
                     currentError = testInputs[inputCounter][4] - generation.GetBestPrediction() < 0 ? generation.GetBestPrediction() - testInputs[inputCounter][4] : testInputs[inputCounter][4] - generation.GetBestPrediction();
-                    fprintf(outputFile, "%f,%f,%f\n", testInputs[inputCounter][4], generation.GetBestPrediction(), currentError);
+                    fprintf(outputFile, "%lf,%lf,%lf\n", testInputs[inputCounter][4], generation.GetBestPrediction(), currentError);
                 }
                 fclose(outputFile);
                 std::cout << "Test is Over!\n";
