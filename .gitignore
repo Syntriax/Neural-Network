@@ -1,5 +1,3 @@
-*.exe
-*.txt
-*.cpp
+*.*
 !main.cpp
 !Genetic.cpp
