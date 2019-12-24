@@ -923,46 +923,49 @@ int main()
         for (floatCounter = 0; floatCounter < 5; floatCounter++)
             fscanf(inputFile, "%f,", &trainInputs[inputCounter][floatCounter]);
     fclose(inputFile);
+
     inputFile = fopen("Data/test.data", "r");
     for (inputCounter = 0; inputCounter < 120; inputCounter++)
         for (floatCounter = 0; floatCounter < 5; floatCounter++)
             fscanf(inputFile, "%f,", &testInputs[inputCounter][floatCounter]);
     fclose(inputFile);
 
-    std::cout << "Inputs Are Getting Set: ";
-    std::cout << generation.SetInputNeurons(4) << "\n";
-    std::cout << "Hiddens Are Getting Set: ";
-    std::cout << generation.SetHiddenNeurons(0, 2) << "\n";
-    std::cout << "Hiddens Are Getting Set: ";
-    std::cout << generation.SetHiddenNeurons(1, 2) << "\n";
-    std::cout << "Hiddens Are Getting Set: ";
-    std::cout << generation.SetHiddenNeurons(2, 2) << "\n";
-    std::cout << "Hiddens Are Getting Set: ";
-    std::cout << generation.SetHiddenNeurons(3, 2) << "\n";
-    std::cout << "Hiddens Are Getting Set: ";
-    std::cout << generation.SetHiddenNeurons(4, 2) << "\n";
-    std::cout << "Inputs Are Getting Set: ";
-    std::cout << generation.SetOutputNeurons(1) << "\n";
+    std::cout << "Inputs   Are Getting Set: ";
+    std::cout << (generation.SetInputNeurons(4) ? "Successfull!" : "Failed!") << "\n";
+    std::cout << "Hidden 1 Are Getting Set: ";
+    std::cout << (generation.SetHiddenNeurons(0, 2) ? "Successfull!" : "Failed!") << "\n";
+    std::cout << "Hidden 2 Are Getting Set: ";
+    std::cout << (generation.SetHiddenNeurons(1, 2) ? "Successfull!" : "Failed!") << "\n";
+    std::cout << "Hidden 3 Are Getting Set: ";
+    std::cout << (generation.SetHiddenNeurons(2, 2) ? "Successfull!" : "Failed!") << "\n";
+    std::cout << "Hidden 4 Are Getting Set: ";
+    std::cout << (generation.SetHiddenNeurons(3, 2) ? "Successfull!" : "Failed!") << "\n";
+    std::cout << "Hidden 5 Are Getting Set: ";
+    std::cout << (generation.SetHiddenNeurons(4, 2) ? "Successfull!" : "Failed!") << "\n";
+    std::cout << "Outputs  Are Getting Set: ";
+    std::cout << (generation.SetOutputNeurons(1) ? "Successfull!" : "Failed!") << "\n";
     std::cout << "Networks Are Getting Connected: ";
-    std::cout << generation.ConnectNetworks() << "\n";
+    std::cout << (generation.ConnectNetworks() ? "Successfull!" : "Failed!") << "\n";
 
     generation.Randomize();
     
     do
     {
-        std::cout << "-2 - Test\n-3 - Best to File\nAny Number for train count\n-1 - Exit\nDecision: ";
+        std::cout << "[-1] Test\n[-2] Best to File\n[-3] Exit\nAny Positive Number for train count\nDecision: ";
         std::cin >> decision;
         
         switch (decision)
         {
             case -3:
+                std::cout << "Exiting...\n";
+                break;
+            case -2:
                 generation.WriteBestToFile();
                 break;
             default:
-                trainCounter = 0;
-                for (int lk = 0; lk < decision; lk++)
+                for (trainCounter = 0; trainCounter < decision; trainCounter++)
                 {
-                    std::cout << trainCounter++ << "\n";
+                    std::cout << (trainCounter + 1) << "\n";
                     for (inputCounter = 0; inputCounter < 10; inputCounter++)
                     {
                         generation.ResetScores();
@@ -978,9 +981,10 @@ int main()
                         generation.NextGeneration();
                     }
                 }
-                std::cout << "Best -> " << generation.GetError() << "\n";
+                std::cout << "Best Score -> " << generation.GetBestPrediction() << "\n";
                 std::cout << "Train is Over!\n";
-            case -2:
+                // break; To test it after the train is done
+            case -1:
                 outputFile = fopen("Data/results.data", "w");
                 for (inputCounter = 0; inputCounter < 120; inputCounter++)
                 {
@@ -996,7 +1000,7 @@ int main()
                 std::cout << "Test is Over!\n";
                 break;
         }
-    } while (decision != -1);
+    } while (decision != -3);
 
     return 0;
 }
