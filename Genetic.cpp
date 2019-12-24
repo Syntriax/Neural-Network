@@ -914,14 +914,15 @@ int main()
     FILE *inputFile;
     FILE *outputFile;
     int decision;
-    double currentError;
+    
     int trainCounter;
-
     int inputCounter;
     int doubleCounter;
-    int groupSize;
+    int groupCounter;
+
     double trainInputs[30][5];
     double testInputs[120][5];
+    double currentError;
     Generation generation(50, 5);
 
     inputFile = fopen("Data/train.data", "r");
@@ -977,11 +978,11 @@ int main()
                     for (inputCounter = 0; inputCounter < 10; inputCounter++)
                     {
                         generation.ResetScores();
-                        for (groupSize = 0; groupSize < 3; groupSize++)
+                        for (groupCounter = 0; groupCounter < 3; groupCounter++)
                         {
                             for (doubleCounter = 0; doubleCounter < 4; doubleCounter++)
-                                generation.SetInput(trainInputs[inputCounter * 3 + groupSize][doubleCounter], doubleCounter);
-                            generation.SetTarget(trainInputs[inputCounter * 3 + groupSize][4]);
+                                generation.SetInput(trainInputs[inputCounter * 3 + groupCounter][doubleCounter], doubleCounter);
+                            generation.SetTarget(trainInputs[inputCounter * 3 + groupCounter][4]);
                             generation.Fire();
                             generation.UpdateScores();
                         }
