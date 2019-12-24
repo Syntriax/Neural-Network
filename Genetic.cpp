@@ -3,9 +3,9 @@
 
 #define RandomRange 1
 #define InitialSynapseValue 0.0
-#define MutationRate 0.15
-#define CrossOverRate 0.1
-#define PopCrossOverRate 0.95
+#define MutationRate 0.25
+#define CrossOverRate 0.25
+#define PopCrossOverRate 0.7
 
 class Synapse;
 class Neuron;
@@ -23,7 +23,6 @@ float RandomFloat(int min, int max)
     srand(time(0) * counter++);
     value = ((rand() * counter) % ((max - min) * 100000));
     result = (float)value / 100000.0 + (float)min;
-    // std::cout << "random is " << result << "\n";
     return result;
 }
 
@@ -48,13 +47,11 @@ float RandomFloat(int min, int max)
 
     Synapse::Synapse()
     {
-        // std::cout << "Created Synapse\n";
         this -> value = this -> weight = this -> bias = InitialSynapseValue;
     }
 
     Synapse::~Synapse()
     {
-        // std::cout << "Deleted Synapse\n";
     }
 
     void Synapse::SetValue(float value)
@@ -117,7 +114,6 @@ float RandomFloat(int min, int max)
 
     Neuron::Neuron()
     {
-        // std::cout << "Created Neuron\n";
         incomings = forwards = NULL;
         incomingsSize = forwardsSize = layerSize = 0;
     }        
@@ -125,7 +121,6 @@ float RandomFloat(int min, int max)
 
     Neuron::~Neuron()
     {
-        // std::cout << "Deleted Neuron\n";
     }
 
     void Neuron::Reset()
@@ -202,7 +197,6 @@ float RandomFloat(int min, int max)
 
     Layer::Layer()
     {
-        // std::cout << "Created Layer\n";
         neuronSize = synapseSize = 0;
         neurons = NULL;
         synapses = NULL;
@@ -210,7 +204,6 @@ float RandomFloat(int min, int max)
 
     Layer::Layer(int size)
     {
-        // std::cout << "Deleted Layer\n";
         neuronSize = synapseSize = 0;
         synapses = NULL;
         neurons = _CreateNeurons(size);
@@ -218,7 +211,6 @@ float RandomFloat(int min, int max)
 
     Layer::~Layer()
     {
-        // std::cout << "Deleted Layer\n";
         if(neurons)  delete neurons;
         if(synapses) delete synapses;
     }
@@ -330,7 +322,6 @@ float RandomFloat(int min, int max)
             delete synapses;
             synapses = NULL;
         }
-        // synapses = (Synapse *) new char[sizeof(Synapse) * synapseCount];
         synapses = _CreateSynapses(synapseCount);
         if(!synapses) return false;
 
@@ -413,6 +404,7 @@ float RandomFloat(int min, int max)
             Layer *hidden;
             Output *output;
             int hiddenSize;
+            float score;
             Input *_CreateInput();
             Layer *_CreateLayers(int);
             Output *_CreateOutput();
@@ -424,9 +416,9 @@ float RandomFloat(int min, int max)
             void FireNetwork();
             void RandomizeValues();
             void MutateNetwork();
-            friend void WriteToFile(NeuralNetwork *);
             void Reset();
             void CrossOverNetwork(NeuralNetwork *);
+            friend void WriteToFile(NeuralNetwork *);
             bool SetInputNeurons(int);
             bool SetHiddenNeurons(int, int);
             bool SetOutputNeurons(int);
@@ -434,8 +426,10 @@ float RandomFloat(int min, int max)
             bool SetLayer(int);
             float GetOutput(int);
             float GetError(int, float);
-            float GetScore(int);
+            float GetPrediction(int);
+            float GetScore();
             int GetHiddenSize();
+            void SetScore(float);
             void SetInput(float, int);
     };
 
@@ -465,7 +459,6 @@ float RandomFloat(int min, int max)
 
     NeuralNetwork::NeuralNetwork()
     {
-        // std::cout << "Created NeuralNetwork\n";
         hiddenSize = 0;
         input = NULL;
         hidden = NULL;
@@ -474,7 +467,6 @@ float RandomFloat(int min, int max)
 
     NeuralNetwork::NeuralNetwork(int hiddenSize)
     {
-        // std::cout << "Created NeuralNetwork\n";
         this -> hiddenSize = hiddenSize;
         input  = _CreateInput();
         hidden = _CreateLayers(hiddenSize);
@@ -483,7 +475,6 @@ float RandomFloat(int min, int max)
 
     NeuralNetwork::~NeuralNetwork()
     {
-        // std::cout << "Deleted NeuralNetwork\n";
         if(input)   delete input;
         if(hidden)  delete hidden;
         if(output)  delete output;
@@ -644,10 +635,15 @@ float RandomFloat(int min, int max)
         return result < 0.0 ? -result : result;
     }
 
-    float NeuralNetwork::GetScore(int index = 0)
+    float NeuralNetwork::GetPrediction(int index = 0)
     {
         float result = GetOutput(index);
         return result;
+    }
+
+    float NeuralNetwork::GetScore()
+    {
+        return score;
     }
 
     int NeuralNetwork::GetHiddenSize()
@@ -658,6 +654,11 @@ float RandomFloat(int min, int max)
     void NeuralNetwork::SetInput(float value, int index = 0)
     {
         input -> SetValue(value, index);
+    }
+
+    void NeuralNetwork::SetScore(float value)
+    {
+        score = value;
     }
 #pragma endregion
 #pragma region Generation
@@ -676,27 +677,27 @@ float RandomFloat(int min, int max)
             ~Generation();
             void Randomize();
             void Fire();
-            void SortByScore(int);
-            void SortByScoreArray(float *, int, int);
+            void SortByScore();
             void DisplayScores(int);
             void DisplayBest(int);
             void SetTarget(float);
             void SetInput(float, int);
             void NextGeneration();
             void WriteBestToFile();
+            void UpdateScores();
+            void ResetScores();
             bool CreateNetworks(int, int);
             bool ConnectNetworks();
             bool SetInputNeurons(int);
             bool SetHiddenNeurons(int, int);
             bool SetOutputNeurons(int);
-            float GetBest(int);
+            float GetBestPrediction(int);
             float GetError(int);
             int GetStep();
     };
 
     Generation::Generation()
     {
-        // std::cout << "Created Generation\n";
         step = 0;
         networks = NULL;
         size = 0;
@@ -705,7 +706,6 @@ float RandomFloat(int min, int max)
 
     Generation::Generation(int size, int hiddenSizes)
     {
-        // std::cout << "Created Generation\n";
         step = 0;
         target = 0.0;
         this -> size = size;
@@ -714,7 +714,6 @@ float RandomFloat(int min, int max)
 
     Generation::~Generation()
     {
-        // std::cout << "Deleted Generation\n";
         if(networks) delete networks;
     }
 
@@ -764,43 +763,44 @@ float RandomFloat(int min, int max)
 
     void Generation::DisplayBest(int index = 0)
     {
-        std::cout << "Target -> " << target << "\tBest -> " << networks -> GetScore(index) << "\n";
+        std::cout << "Target -> " << target << "\tBest -> " << networks -> GetPrediction(index) << "\n";
     }
 
-    float Generation::GetBest(int index = 0)
+    void Generation::UpdateScores()
     {
-        return networks -> GetScore(index);
+        float scoreToAdd;
+        int i;
+        for (i = 0; i < size; i++)
+        {
+            scoreToAdd = (networks + i) -> GetError(0, target);
+            (networks + i) -> SetScore((networks + i) -> GetScore() + scoreToAdd);
+        }
+    }
+
+    void Generation::ResetScores()
+    {
+        int i;
+        for (i = 0; i < size; i++)
+            (networks + i) -> SetScore(0.0);
+    }
+
+    float Generation::GetBestPrediction(int index = 0)
+    {
+        return networks -> GetPrediction(index);
     }
 
     float Generation::GetError(int index = 0)
     {
         return (networks + index) -> GetError(0, target);
     }
-    void Generation::SortByScore(int index = 0)
+    void Generation::SortByScore()
     {
         int i;
         int j;
         for (i = 0; i < size - 1; i++)
             for (j = i + 1; j < size; j++)
-                if((networks + i) -> GetError(index, target) > (networks + j) -> GetError(index, target))
+                if((networks + i) -> GetScore() > (networks + j) -> GetScore())
                     _SwapNetworks((networks + i), (networks + j));
-    }
-    void Generation::SortByScoreArray(float *array, int size, int index = 0)
-    {
-        int i;
-        int j;
-        float temp;
-        
-        for (i = 0; i < size - 1; i++)
-            for (j = i + 1; j < size; j++)
-                if(*(array + i) > *(array + j))
-                {
-                    temp = *(array + i);
-                    *(array + i) = *(array + j);
-                    *(array + j) = temp;
-                    _SwapNetworks((networks + i), (networks + j));
-                }
-                // if((networks + i) -> GetError(index, target) > (networks + j) -> GetError(index, target))
     }
 
     void Generation::SetTarget(float target)
@@ -832,7 +832,6 @@ float RandomFloat(int min, int max)
         NeuralNetwork *second = NULL;
         Fire();
 
-        // for (; i < size; i+=2)
         for (i = 2; i < crossOverCount; i+=2)
         {
             first = (networks + i);
@@ -849,7 +848,6 @@ float RandomFloat(int min, int max)
                 second -> MutateNetwork();
             }
         }
-        // SortByScore();
         
         for (; i < size; i++)
             (networks + i) -> RandomizeValues();
@@ -905,8 +903,6 @@ float RandomFloat(int min, int max)
     }
 #pragma endregion
 
-
-
 int main()
 {
     FILE *inputFile;
@@ -917,20 +913,18 @@ int main()
 
     int inputCounter;
     int floatCounter;
-    int i;
-    int j;
-    int generationCounter;
+    int groupSize;
     float trainInputs[30][5];
-    float scores[50];
     float testInputs[120][5];
     Generation generation(50, 5);
+
     inputFile = fopen("Data/train.data", "r");
     for (inputCounter = 0; inputCounter < 30; inputCounter++)
         for (floatCounter = 0; floatCounter < 5; floatCounter++)
             fscanf(inputFile, "%f,", &trainInputs[inputCounter][floatCounter]);
     fclose(inputFile);
     inputFile = fopen("Data/test.data", "r");
-    for (inputCounter = 0; inputCounter < 150; inputCounter++)
+    for (inputCounter = 0; inputCounter < 120; inputCounter++)
         for (floatCounter = 0; floatCounter < 5; floatCounter++)
             fscanf(inputFile, "%f,", &testInputs[inputCounter][floatCounter]);
     fclose(inputFile);
@@ -971,31 +965,23 @@ int main()
                     std::cout << trainCounter++ << "\n";
                     for (inputCounter = 0; inputCounter < 10; inputCounter++)
                     {
-                        // for (generationCounter = 0; generationCounter < 25; generationCounter++)
-                        // {
-                            for (j = 0; j < 50; j++)
-                                scores[j] = 0.0;
-                            for (i = 0; i < 3; i++)
-                            {
-                                for (floatCounter = 0; floatCounter < 4; floatCounter++)
-                                    generation.SetInput(trainInputs[inputCounter * 3 + i][floatCounter], floatCounter);
-                                generation.SetTarget(trainInputs[inputCounter * 3 + i][4]);
-                                generation.Fire();
-                                for (j = 0; j < 50; j++)
-                                    scores[j] += generation.GetError(j);
-                            }
-                            generation.SortByScoreArray(scores, 50);
-                            generation.NextGeneration();
-                            // generation.NextGeneration();
-                        // }
+                        generation.ResetScores();
+                        for (groupSize = 0; groupSize < 3; groupSize++)
+                        {
+                            for (floatCounter = 0; floatCounter < 4; floatCounter++)
+                                generation.SetInput(trainInputs[inputCounter * 3 + groupSize][floatCounter], floatCounter);
+                            generation.SetTarget(trainInputs[inputCounter * 3 + groupSize][4]);
+                            generation.Fire();
+                            generation.UpdateScores();
+                        }
+                        generation.SortByScore();
+                        generation.NextGeneration();
                     }
                 }
-                
-                std::cout << "Best -> " << scores[0] << "\n";
+                std::cout << "Best -> " << generation.GetError() << "\n";
                 std::cout << "Train is Over!\n";
             case -2:
                 outputFile = fopen("Data/results.data", "w");
-                trainCounter = 0;
                 for (inputCounter = 0; inputCounter < 120; inputCounter++)
                 {
                     for (floatCounter = 0; floatCounter < 4; floatCounter++)
@@ -1003,10 +989,8 @@ int main()
                     generation.SetTarget(testInputs[inputCounter][4]);
                     
                     generation.Fire();
-                    // generation.DisplayBest();
-                    currentError = testInputs[inputCounter][4] - generation.GetBest() < 0 ? generation.GetBest() - testInputs[inputCounter][4] : testInputs[inputCounter][4] - generation.GetBest();
-                    // fprintf(outputFile, "Original = %f\t->\tTrained -> %f\t Error = %f\n", testInputs[inputCounter][4], generation.GetBest(), currentError);
-                    fprintf(outputFile, "%f,%f,%f\n", testInputs[inputCounter][4], generation.GetBest(), currentError);
+                    currentError = testInputs[inputCounter][4] - generation.GetBestPrediction() < 0 ? generation.GetBestPrediction() - testInputs[inputCounter][4] : testInputs[inputCounter][4] - generation.GetBestPrediction();
+                    fprintf(outputFile, "%f,%f,%f\n", testInputs[inputCounter][4], generation.GetBestPrediction(), currentError);
                 }
                 fclose(outputFile);
                 std::cout << "Test is Over!\n";
