@@ -688,14 +688,14 @@ double RandomDouble(int min, int max)
             void SetInput(double, int);
             void NextGeneration();
             void WriteBestToFile();
-            void UpdateScores();
+            void UpdateScores(int);
             void ResetScores();
             bool CreateNetworks(int, int);
             bool ConnectNetworks();
             bool SetInputNeurons(int);
             bool SetHiddenNeurons(int, int);
             bool SetOutputNeurons(int);
-            double GetBestPrediction(int);
+            double GetPredictionOfBestNetwork(int);
             double GetError(int);
             int GetStep();
     };
@@ -770,13 +770,13 @@ double RandomDouble(int min, int max)
         std::cout << "Target -> " << target << "\tBest -> " << networks -> GetPrediction(index) << "\n";
     }
 
-    void Generation::UpdateScores()
+    void Generation::UpdateScores(int index = 0)
     {
         double scoreToAdd;
         int i;
         for (i = 0; i < size; i++)
         {
-            scoreToAdd = (networks + i) -> GetError(0, target);
+            scoreToAdd = (networks + i) -> GetError(index, target);
             (networks + i) -> SetScore((networks + i) -> GetScore() + scoreToAdd);
         }
     }
@@ -788,7 +788,7 @@ double RandomDouble(int min, int max)
             (networks + i) -> SetScore(0.0);
     }
 
-    double Generation::GetBestPrediction(int index = 0)
+    double Generation::GetPredictionOfBestNetwork(int index = 0)
     {
         return networks -> GetPrediction(index);
     }
@@ -990,7 +990,7 @@ int main()
                         generation.NextGeneration();
                     }
                 }
-                std::cout << "Best Score -> " << generation.GetBestPrediction() << "\n";
+                std::cout << "Best Score -> " << generation.GetPredictionOfBestNetwork() << "\n";
                 std::cout << "Train is Over!\n";
                 // break; To test it after the train is done
             case -1:
@@ -1002,8 +1002,8 @@ int main()
                     generation.SetTarget(testInputs[inputCounter][4]);
                     
                     generation.Fire();
-                    currentError = testInputs[inputCounter][4] - generation.GetBestPrediction() < 0 ? generation.GetBestPrediction() - testInputs[inputCounter][4] : testInputs[inputCounter][4] - generation.GetBestPrediction();
-                    fprintf(outputFile, "%lf,%lf,%lf\n", testInputs[inputCounter][4], generation.GetBestPrediction(), currentError);
+                    currentError = testInputs[inputCounter][4] - generation.GetPredictionOfBestNetwork() < 0 ? generation.GetPredictionOfBestNetwork() - testInputs[inputCounter][4] : testInputs[inputCounter][4] - generation.GetPredictionOfBestNetwork();
+                    fprintf(outputFile, "%lf,%lf,%lf\n", testInputs[inputCounter][4], generation.GetPredictionOfBestNetwork(), currentError);
                 }
                 fclose(outputFile);
                 std::cout << "Test is Over!\n";
