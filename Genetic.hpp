@@ -1,15 +1,11 @@
-/*
-    Author: Asrın "Syntriax" Doğan
-    Mail: asrindogan99@gmail.com
-*/
 #include <iostream>
 #include <time.h>
 
 #define RandomRange 1
 #define InitialSynapseValue 0.0
-#define MutationRate 0.25
+#define MutationRate 0.15
 #define CrossOverRate 0.25
-#define PopCrossOverRate 0.75
+#define PopCrossOverRate 0.5
 
 class Synapse;
 class Neuron;
@@ -192,6 +188,7 @@ double RandomDouble(int min, int max)
             void Mutate();
             void RandomizeValues();
             void CrossOverSynapses(Layer *);
+            friend void LoadFromFile(NeuralNetwork *, char *);
             friend void WriteToFile(NeuralNetwork *);
             bool CreateNeurons(int);
             bool ConnectPrevious(Layer *);
@@ -283,6 +280,7 @@ double RandomDouble(int min, int max)
         double bias = 0.0;
         double weight = 0.0;
         double mutationValue = 0.0;
+        bool isMutated = false;
         int i;
 
         for (i = 0; i < synapseSize; i++)
@@ -290,12 +288,16 @@ double RandomDouble(int min, int max)
             mutationValue = RandomDouble(0, 1);
             if(mutationValue <= MutationRate)
             {
+                isMutated = true;
                 bias   = RandomDouble(-RandomRange, RandomRange);
                 weight = RandomDouble(-RandomRange, RandomRange);
                 (synapses + i) -> SetBias(bias);
                 (synapses + i) -> SetWeight(weight);
             }
         }
+
+        if(!isMutated && synapseSize != 0)
+            Mutate();
     }
 
     void Layer::CrossOverSynapses(Layer *other)
@@ -422,6 +424,7 @@ double RandomDouble(int min, int max)
             void MutateNetwork();
             void Reset();
             void CrossOverNetwork(NeuralNetwork *);
+            friend void LoadFromFile(NeuralNetwork *, char *);
             friend void WriteToFile(NeuralNetwork *);
             bool SetInputNeurons(int);
             bool SetHiddenNeurons(int, int);
@@ -548,22 +551,20 @@ double RandomDouble(int min, int max)
         int j;
         Synapse *synapsePtr = network -> input -> synapses;
         int count = network -> input -> synapseSize;
-        std::cout << count << "\n";
         FILE *file = fopen("Data/BestSynapses.txt", "w");
         for (i = 0; i < count; i++)
         {
-            fprintf(file, "%lf, %lf, ", synapsePtr -> GetWeight(), synapsePtr -> GetBias());
+            fprintf(file, "%f, %f, ", synapsePtr -> GetWeight(), synapsePtr -> GetBias());
             synapsePtr++;
         }
         
         for (j = 0; j < network -> hiddenSize; j++)
         {
             count = (network -> hidden + j) -> synapseSize;
-            std::cout << count << "\n";
             synapsePtr = (network -> hidden + j) -> synapses;
             for (i = 0; i < count; i++)
             {
-                fprintf(file, "%lf, %lf, ", synapsePtr -> GetWeight(), synapsePtr -> GetBias());
+                fprintf(file, "%f, %f, ", synapsePtr -> GetWeight(), synapsePtr -> GetBias());
                 synapsePtr++;
             }
         }
@@ -571,10 +572,9 @@ double RandomDouble(int min, int max)
 
         synapsePtr = network -> output -> synapses;
         count = network -> output -> synapseSize;
-        std::cout << count << "\n";
         for (i = 0; i < count; i++)
         {
-            fprintf(file, "%lf, %lf, ", synapsePtr -> GetWeight(), synapsePtr -> GetBias());
+            fprintf(file, "%f, %f, ", synapsePtr -> GetWeight(), synapsePtr -> GetBias());
             synapsePtr++;
         }
         fclose(file);
@@ -585,6 +585,49 @@ double RandomDouble(int min, int max)
         input = NULL;
         hidden = NULL;
         output = NULL;
+    }
+
+    void LoadFromFile(NeuralNetwork *network, char *filePath)
+    {
+        int i;
+        int j;
+        float readWeight;
+        float readBias;
+        Synapse *synapsePtr = network -> input -> synapses;
+        int count = network -> input -> synapseSize;
+        FILE *file = fopen(filePath, "r");
+        for (i = 0; i < count; i++)
+        {
+            fscanf(file, "%f, %f, ", &readWeight, &readBias);
+            synapsePtr -> SetWeight(readWeight);
+            synapsePtr -> SetBias(readBias);
+            synapsePtr++;
+        }
+        
+        for (j = 0; j < network -> hiddenSize; j++)
+        {
+            count = (network -> hidden + j) -> synapseSize;
+            synapsePtr = (network -> hidden + j) -> synapses;
+            for (i = 0; i < count; i++)
+            {
+                fscanf(file, "%f, %f, ", &readWeight, &readBias);
+                synapsePtr -> SetWeight(readWeight);
+                synapsePtr -> SetBias(readBias);
+                synapsePtr++;
+            }
+        }
+        
+
+        synapsePtr = network -> output -> synapses;
+        count = network -> output -> synapseSize;
+        for (i = 0; i < count; i++)
+        {
+            fscanf(file, "%f, %f, ", &readWeight, &readBias);
+            synapsePtr -> SetWeight(readWeight);
+            synapsePtr -> SetBias(readBias);
+            synapsePtr++;
+        }
+        fclose(file);
     }
 
     bool NeuralNetwork::SetInputNeurons(int size)
@@ -690,6 +733,7 @@ double RandomDouble(int min, int max)
             void WriteBestToFile();
             void UpdateScores(int);
             void ResetScores();
+            void LoadBestFromFile(char *);
             bool CreateNetworks(int, int);
             bool ConnectNetworks();
             bool SetInputNeurons(int);
@@ -859,6 +903,14 @@ double RandomDouble(int min, int max)
         step++;
     }
 
+    void Generation::LoadBestFromFile(char *filePath)
+    {
+        LoadFromFile(networks, filePath);
+        LoadFromFile(networks + 1, filePath);
+        this -> NextGeneration();
+    }
+
+
     bool Generation::CreateNetworks(int size, int hiddenSizes)
     {
         if((networks = _CreateNetworks(size, hiddenSizes)))
@@ -908,108 +960,3 @@ double RandomDouble(int min, int max)
         return step;
     }
 #pragma endregion
-
-int main()
-{
-    FILE *inputFile;
-    FILE *outputFile;
-    int decision;
-    
-    int trainCounter;
-    int inputCounter;
-    int doubleCounter;
-    int groupCounter;
-
-    double trainInputs[30][5];
-    double testInputs[120][5];
-    double currentError;
-    Generation generation(50, 5);
-
-    inputFile = fopen("Data/train.data", "r");
-    for (inputCounter = 0; inputCounter < 30; inputCounter++)
-        for (doubleCounter = 0; doubleCounter < 5; doubleCounter++)
-            fscanf(inputFile, "%lf,", &trainInputs[inputCounter][doubleCounter]);
-    fclose(inputFile);
-
-    inputFile = fopen("Data/test.data", "r");
-    for (inputCounter = 0; inputCounter < 120; inputCounter++)
-        for (doubleCounter = 0; doubleCounter < 5; doubleCounter++)
-            fscanf(inputFile, "%lf,", &testInputs[inputCounter][doubleCounter]);
-    fclose(inputFile);
-
-    std::cout << "Inputs   Are Getting Set: ";
-    std::cout << (generation.SetInputNeurons(4)     ? "Successfull!" : "Failed!") << "\n";
-    std::cout << "Hidden 1 Are Getting Set: ";
-    std::cout << (generation.SetHiddenNeurons(0, 2) ? "Successfull!" : "Failed!") << "\n";
-    std::cout << "Hidden 2 Are Getting Set: ";
-    std::cout << (generation.SetHiddenNeurons(1, 2) ? "Successfull!" : "Failed!") << "\n";
-    std::cout << "Hidden 3 Are Getting Set: ";
-    std::cout << (generation.SetHiddenNeurons(2, 2) ? "Successfull!" : "Failed!") << "\n";
-    std::cout << "Hidden 4 Are Getting Set: ";
-    std::cout << (generation.SetHiddenNeurons(3, 2) ? "Successfull!" : "Failed!") << "\n";
-    std::cout << "Hidden 5 Are Getting Set: ";
-    std::cout << (generation.SetHiddenNeurons(4, 2) ? "Successfull!" : "Failed!") << "\n";
-    std::cout << "Outputs  Are Getting Set: ";
-    std::cout << (generation.SetOutputNeurons(1)    ? "Successfull!" : "Failed!") << "\n";
-    std::cout << "Networks Are Getting Connected: ";
-    std::cout << (generation.ConnectNetworks()      ? "Successfull!" : "Failed!") << "\n";
-
-    std::cout << "Networks Are Getting Randomized: ";
-    generation.Randomize();
-    std::cout << "Done!\n";
-    
-    do
-    {
-        std::cout << "\n[-1] Test\n[-2] Best to File\n[-3] Exit\nAny Positive Number for train count\nDecision: ";
-        std::cin >> decision;
-        
-        switch (decision)
-        {
-            case -3:
-                std::cout << "Exiting...\n";
-                break;
-            case -2:
-                generation.WriteBestToFile();
-                break;
-            default:
-                for (trainCounter = 0; trainCounter < decision; trainCounter++)
-                {
-                    std::cout << (trainCounter + 1) << "\n";
-                    for (inputCounter = 0; inputCounter < 10; inputCounter++)
-                    {
-                        generation.ResetScores();
-                        for (groupCounter = 0; groupCounter < 3; groupCounter++)
-                        {
-                            for (doubleCounter = 0; doubleCounter < 4; doubleCounter++)
-                                generation.SetInput(trainInputs[inputCounter * 3 + groupCounter][doubleCounter], doubleCounter);
-                            generation.SetTarget(trainInputs[inputCounter * 3 + groupCounter][4]);
-                            generation.Fire();
-                            generation.UpdateScores();
-                        }
-                        generation.SortByScore();
-                        generation.NextGeneration();
-                    }
-                }
-                std::cout << "Best Score -> " << generation.GetPredictionOfBestNetwork() << "\n";
-                std::cout << "Train is Over!\n";
-                // break; To test it after the train is done
-            case -1:
-                outputFile = fopen("Data/results.data", "w");
-                for (inputCounter = 0; inputCounter < 120; inputCounter++)
-                {
-                    for (doubleCounter = 0; doubleCounter < 4; doubleCounter++)
-                        generation.SetInput(testInputs[inputCounter][doubleCounter], doubleCounter);
-                    generation.SetTarget(testInputs[inputCounter][4]);
-                    
-                    generation.Fire();
-                    currentError = testInputs[inputCounter][4] - generation.GetPredictionOfBestNetwork() < 0 ? generation.GetPredictionOfBestNetwork() - testInputs[inputCounter][4] : testInputs[inputCounter][4] - generation.GetPredictionOfBestNetwork();
-                    fprintf(outputFile, "%lf,%lf,%lf\n", testInputs[inputCounter][4], generation.GetPredictionOfBestNetwork(), currentError);
-                }
-                fclose(outputFile);
-                std::cout << "Test is Over!\n";
-                break;
-        }
-    } while (decision != -3);
-
-    return 0;
-}
